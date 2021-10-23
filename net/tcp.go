@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
 	"gnet_tool/code_tool"
 	"time"
@@ -38,9 +39,11 @@ func (t *tcpServer) OnInitComplete(server gnet.Server) (action gnet.Action)  {
 func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Action) {
 	defer c.ResetBuffer()
 	if t.async {
-		if len(frame) >= 0 {
-			t.asyncFunc(frame,c)
-		}
+		ants.Submit(func() {
+			if len(frame) >= 0 {
+				t.asyncFunc(frame,c)
+			}
+		})
 		return
 	}
 	out = t.noAsyncFunc(frame, c)
