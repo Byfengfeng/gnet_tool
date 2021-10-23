@@ -10,6 +10,7 @@ import (
 
 type tcpServer struct {
 	*gnet.EventServer
+	tcpVersion	string
 	addr	   string
 	ip		   uint16
 	multicore  bool
@@ -22,13 +23,13 @@ func (t *tcpServer) NewEventHandler() gnet.EventHandler {
 	return 	t
 }
 
-func NewTcpServer(addr string,ip uint16,multicore,async bool,
+func NewTcpServer(tcpVersion,addr string,ip uint16,multicore,async bool,
 	asyncFunc func(frame []byte, c gnet.Conn),
 	noAsyncFunc func(frame []byte, c gnet.Conn) []byte) *tcpServer {
 	if async {
-		return 	&tcpServer{addr: addr,ip: ip,multicore: multicore,async: async,asyncFunc: asyncFunc}
+		return 	&tcpServer{tcpVersion: tcpVersion,addr: addr,ip: ip,multicore: multicore,async: async,asyncFunc: asyncFunc}
 	}
-	return 	&tcpServer{addr: addr,ip: ip,multicore: multicore,async: async,noAsyncFunc: noAsyncFunc}
+	return 	&tcpServer{tcpVersion: tcpVersion,addr: addr,ip: ip,multicore: multicore,async: async,noAsyncFunc: noAsyncFunc}
 }
 
 func (t *tcpServer) OnInitComplete(server gnet.Server) (action gnet.Action)  {
@@ -75,7 +76,7 @@ func (t *tcpServer) Start() (err error) {
 		options = append(options,gnet.WithCodec(code_tool.NewICodec()))
 	}
 	options = append(options,gnet.WithNumEventLoop(200))
-	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("tcp://%s:%d",t.addr,t.ip),
+	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.tcpVersion,t.addr,t.ip),
 		options...)
 	return
 }
