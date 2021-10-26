@@ -2,12 +2,10 @@ module github.com/Byfengfeng/gnet_tool
 
 go 1.17
 
+
 require (
 	github.com/panjf2000/ants/v2 v2.4.6
 	github.com/panjf2000/gnet v1.5.3
-)
-
-require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
