@@ -17,7 +17,7 @@ func (i *ICodec) Decode(c gnet.Conn) ([]byte, error) {
 	}
 	length := uint16(headByte[0]) << 8 | uint16(headByte[1])
 	if length > 0 {
-		size, dataBytes := c.ReadN(int(length+2))
+		size, dataBytes := c.ReadN(int(length-2))
 		if size == 0{
 			return nil,nil
 		}

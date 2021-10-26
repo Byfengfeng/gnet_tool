@@ -68,7 +68,6 @@ func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 
 func (t *tcpServer) Start() (err error) {
 	options := make([]gnet.Option,0)
-	options = append(options,gnet.WithCodec(code_tool.NewICodec()))
 	if t.multicore {
 		options = append(options,gnet.WithMulticore(t.multicore))
 	}

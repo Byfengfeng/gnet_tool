@@ -2,7 +2,6 @@ module github.com/Byfengfeng/gnet_tool
 
 go 1.17
 
-
 require (
 	github.com/panjf2000/ants/v2 v2.4.6
 	github.com/panjf2000/gnet v1.5.3
