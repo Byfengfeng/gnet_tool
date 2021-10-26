@@ -1,4 +1,4 @@
-module gitee.com/byfengfeng/gnet_tool
+module github.com/Byfengfeng/gnet_tool
 
 go 1.17
 

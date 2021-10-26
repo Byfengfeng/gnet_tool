@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gitee.com/byfengfeng/gnet_tool/net"
+	"github.com/Byfengfeng/gnet_tool/net"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
 )
