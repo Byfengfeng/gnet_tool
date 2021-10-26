@@ -2,9 +2,9 @@ package net
 
 import (
 	"fmt"
+	"gitee.com/byfengfeng/gnet_tool/code_tool"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
-	"gnet_tool/code_tool"
 	"time"
 )
 

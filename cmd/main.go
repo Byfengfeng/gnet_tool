@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"gitee.com/byfengfeng/gnet_tool/net"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
-	"gnet_tool/net"
 )
 
 func main() {
-	tcpServer := net.NewTcpServer("", 9000, true, true, func(frame []byte, c gnet.Conn) {
+	tcpServer := net.NewTcpServer("tcp6","", 9000, true, true, func(frame []byte, c gnet.Conn) {
 		ants.Submit(func() {
 			fmt.Println(string(frame))
 			if len(frame) > 0 {
@@ -19,6 +19,8 @@ func main() {
 			return
 		})
 	},nil)
-	tcpServer.Start()
-	//time.Sleep(20 * time.Second)
+	err := tcpServer.Start()
+	if err != nil {
+		panic(err)
+	}
 }
