@@ -21,7 +21,7 @@ func (i *ICodec) Decode(c gnet.Conn) ([]byte, error) {
 		if size == 0{
 			return nil,nil
 		}
-		return dataBytes,nil
+		return dataBytes[2:],nil
 	}
 
 	return nil,nil
