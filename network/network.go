@@ -4,23 +4,26 @@ import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/utils"
-	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
+	"sync"
 )
 
 type NetWork struct {
 	gnet.Conn
 	ReadChan chan []byte
 	WriteChan chan []byte
-	Close chan bool
+	CloseChan chan bool
 }
 
 var(
 	netWorkMap = make(map[string]*NetWork)
+	netWorkLock = sync.RWMutex{}
 )
 
 func NewNetWork(c gnet.Conn) inter.INetwork {
 	address := c.RemoteAddr().String()
+	netWorkLock.Lock()
+	defer netWorkLock.Unlock()
 	t,ok := netWorkMap[address]
 	if ok {
 		t.Conn.Close()
@@ -33,18 +36,18 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 }
 
 func (n *NetWork) read()  {
+	defer func() {
+		close(n.ReadChan)
+		close(n.WriteChan)
+		close(n.CloseChan)
+	}()
 	for  {
 		select {
 		case reqBytes := <- n.ReadChan:
-			ants.Submit(func() {
 				//读取数据
 				code, data := utils.Decode(reqBytes)
 				fmt.Println(fmt.Sprintf("code: %d,",code),"data:",string(data))
-			})
-		case <- n.Close:
-			close(n.ReadChan)
-			close(n.WriteChan)
-			close(n.Close)
+		case <- n.CloseChan:
 			return
 		}
 	}
@@ -74,4 +77,15 @@ func GetNetWork(address string) *NetWork {
 		return netWork
 	}
 	return nil
+}
+
+func DelNetWork(addr string)  {
+	netWorkLock.Lock()
+	netWork,ok := netWorkMap[addr]
+	if ok {
+		netWork.Conn.Close()
+		delete(netWorkMap,addr)
+		netWork.CloseChan <- true
+	}
+	defer netWorkLock.Unlock()
 }
