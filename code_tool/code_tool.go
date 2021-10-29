@@ -20,5 +20,5 @@ func (i *ICodec) Decode(c gnet.Conn) ([]byte, error) {
 }
 
 func (i *ICodec) Encode(c gnet.Conn, buf []byte) ([]byte, error) {
-	return append([]byte{byte(len(buf) >> 8),byte(len(buf))},buf...),nil
+	return buf,nil
 }

@@ -1,12 +1,17 @@
 package utils
 
-func Decode(bytes []byte) (code uint16,data []byte,remainingByte []byte) {
+func DecodeRound(bytes []byte) (data []byte,remainingByte []byte) {
 	length := Length(bytes)
-	code = uint16(bytes[2]) << 8 | uint16(bytes[3])
-	data = bytes[4:length-1]
+	data = bytes[2:length-1]
 	if len(bytes) > int(length) {
 		remainingByte =  bytes[length:]
 	}
+	return
+}
+
+func Decode(bytes []byte) (code uint16,data []byte) {
+	code = uint16(bytes[0]) << 8 | uint16(bytes[1])
+	data = bytes[2:]
 	return
 }
 
