@@ -45,7 +45,7 @@ func (n *NetWork) read()  {
 		select {
 		case reqBytes := <- n.ReadChan:
 			if len(reqBytes) == 0 {
-				//fmt.Println("read off")
+				fmt.Println("read off")
 				return
 			}
 			//读取数据
@@ -65,7 +65,7 @@ func (n *NetWork) write()  {
 				return
 			}
 		}else{
-			//fmt.Println("write off")
+			fmt.Println("write off")
 			return
 		}
 	}
@@ -77,6 +77,8 @@ func (n *NetWork) Start()  {
 }
 
 func (n *NetWork) SetIsClose()  {
+	n.ReadLock.Lock()
+	defer n.ReadLock.Unlock()
 	n.IsClose = !n.IsClose
 }
 
@@ -101,9 +103,16 @@ func DelNetWork(addr string)  {
 		delete(netWorkMap,addr)
 		close(netWork.ReadChan)
 		close(netWork.WriteChan)
-		//fmt.Println("close network")
+		fmt.Println("close network")
 		atomic.AddUint32(&count,1)
-
 	}
 
+}
+
+func GetCloseCount() uint32 {
+	return count
+}
+
+func ResetCount()  {
+	count = 0
 }

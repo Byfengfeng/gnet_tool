@@ -7,6 +7,7 @@ import (
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
+	"runtime/debug"
 	"time"
 )
 
@@ -39,8 +40,6 @@ func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 				if len(copyByte) > 0 {
 					netWork := network.GetNetWork(c.RemoteAddr().String())
 					if netWork!= nil && !netWork.IsClose {
-						netWork.ReadLock.Lock()
-						defer netWork.ReadLock.Unlock()
 						netWork.SetIsClose()
 						if netWork != nil {
 							codeDe(copyByte,netWork)
@@ -77,16 +76,15 @@ func (t *tcpServer) OnShutdown(svr gnet.Server) {
 func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	netWork := network.GetNetWork(c.RemoteAddr().String())
 	if netWork != nil && !netWork.IsClose {
-		netWork.ReadLock.Lock()
 		netWork.SetIsClose()
-		netWork.ReadLock.Unlock()
 		network.DelNetWork(c.RemoteAddr().String())
 	}
-
+	freeOs()
 	return gnet.Close
 }
 
 func (t *tcpServer) Start() (err error) {
+	go freeOs()
 	options := make([]gnet.Option,0)
 	if t.multicore {
 		options = append(options,gnet.WithMulticore(t.multicore))
@@ -95,7 +93,12 @@ func (t *tcpServer) Start() (err error) {
 	options = append(options,gnet.WithNumEventLoop(200))
 	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.tcpVersion,t.addr,t.ip),
 		options...)
-
 	return
 }
 
+func freeOs() {
+	if network.GetCloseCount() > 100 {
+		debug.FreeOSMemory()
+		network.ResetCount()
+	}
+}
