@@ -1,10 +1,11 @@
 package network
 
 import (
-	"fmt"
 	"github.com/Byfengfeng/gnet_tool/inter"
+	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"github.com/panjf2000/gnet"
+	"go.uber.org/zap"
 	"sync"
 	"sync/atomic"
 )
@@ -45,12 +46,12 @@ func (n *NetWork) read()  {
 		select {
 		case reqBytes := <- n.ReadChan:
 			if len(reqBytes) == 0 {
-				fmt.Println("read off")
+				log.Logger.Info("read off")
 				return
 			}
 			//读取数据
 			code, data := utils.Decode(reqBytes)
-			fmt.Println(fmt.Sprintf("code: %d,",code),"data:",string(data))
+			log.Logger.Info("收到消息:",zap.Uint16("code:",code),zap.String("data:",string(data)))
 		}
 	}
 }
@@ -61,11 +62,11 @@ func (n *NetWork) write()  {
 		if len(data) > 0 {
 			err := n.Conn.AsyncWrite(data)
 			if err != nil {
-				fmt.Println("发送消息异常")
+				log.Logger.Error("发送消息异常",zap.Any("err",err))
 				return
 			}
 		}else{
-			fmt.Println("write off")
+			log.Logger.Info("write off")
 			return
 		}
 	}
@@ -103,7 +104,7 @@ func DelNetWork(addr string)  {
 		delete(netWorkMap,addr)
 		close(netWork.ReadChan)
 		close(netWork.WriteChan)
-		fmt.Println("close network")
+		log.Logger.Info("close network")
 		atomic.AddUint32(&count,1)
 	}
 

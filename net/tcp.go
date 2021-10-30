@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/code_tool"
+	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/network"
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"github.com/panjf2000/ants/v2"
@@ -28,7 +29,7 @@ func NewTcpServer(tcpVersion,addr string,ip uint16,multicore bool) *tcpServer {
 }
 
 func (t *tcpServer) OnInitComplete(server gnet.Server) (action gnet.Action)  {
-	fmt.Println("tcp listen start")
+	log.Logger.Info("tcp listen start")
 	return
 }
 
@@ -91,6 +92,8 @@ func (t *tcpServer) Start() (err error) {
 	}
 	options = append(options,gnet.WithCodec(code_tool.NewICodec()))
 	options = append(options,gnet.WithNumEventLoop(200))
+	options = append(options,gnet.WithLogger(log.DefaultLogger()))
+
 	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.tcpVersion,t.addr,t.ip),
 		options...)
 	return

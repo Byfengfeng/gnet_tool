@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/net"
-	"runtime/debug"
-	"time"
+	"github.com/Byfengfeng/gnet_tool/utils"
 )
 
 func main() {
@@ -39,14 +38,19 @@ func main() {
 	//time.Sleep(10 * time.Second)
 
 	<-make(chan struct{})
+
+	//TestPool()
 }
 
-func freeOs()  {
-	timer := time.NewTimer(3 * time.Second)
-		select {
-		case <- timer.C:
-			fmt.Println("FreeOSMemory")
-			debug.FreeOSMemory()
-			freeOs()
-		}
+func TestPool()  {
+
+	pool := utils.NewSafePool(func() interface{} {
+		return []byte{}
+	})
+	bytes := pool.Get().([]byte)
+	bytes = []byte("123str")
+	pool.Put(bytes)
+	str := pool.Get().([]byte)
+	fmt.Println(string(str))
+
 }
