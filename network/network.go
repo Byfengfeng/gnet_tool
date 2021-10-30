@@ -12,7 +12,9 @@ type NetWork struct {
 	gnet.Conn
 	ReadChan chan []byte
 	WriteChan chan []byte
-	CloseChan chan bool
+	IsClose bool
+	Lock sync.Mutex
+
 }
 
 var(
@@ -29,26 +31,23 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 		t.Conn.Close()
 		t.Conn = c
 	}else{
-		t = &NetWork{c,make(chan[]byte),make(chan[]byte),make(chan bool)}
+		t = &NetWork{c,make(chan[]byte),make(chan[]byte),false,sync.Mutex{}}
 		netWorkMap[address] = t
 	}
 	return t
 }
 
 func (n *NetWork) read()  {
-	defer func() {
-		close(n.ReadChan)
-		close(n.WriteChan)
-		close(n.CloseChan)
-	}()
 	for  {
 		select {
 		case reqBytes := <- n.ReadChan:
-				//读取数据
-				code, data := utils.Decode(reqBytes)
-				fmt.Println(fmt.Sprintf("code: %d,",code),"data:",string(data))
-		case <- n.CloseChan:
-			return
+			if len(reqBytes) == 0 {
+				fmt.Println("read off")
+				return
+			}
+			//读取数据
+			code, data := utils.Decode(reqBytes)
+			fmt.Println(fmt.Sprintf("code: %d,",code),"data:",string(data))
 		}
 	}
 }
@@ -62,6 +61,9 @@ func (n *NetWork) write()  {
 				fmt.Println("发送消息异常")
 				return
 			}
+		}else{
+			fmt.Println("write off")
+			return
 		}
 	}
 }
@@ -71,7 +73,14 @@ func (n *NetWork) Start()  {
 	go n.write()
 }
 
+func (n *NetWork) SetIsClose()  {
+	n.IsClose = !n.IsClose
+}
+
+
 func GetNetWork(address string) *NetWork {
+	netWorkLock.Lock()
+	defer netWorkLock.Unlock()
 	netWork,ok := netWorkMap[address]
 	if ok {
 		return netWork
@@ -81,11 +90,14 @@ func GetNetWork(address string) *NetWork {
 
 func DelNetWork(addr string)  {
 	netWorkLock.Lock()
+	defer netWorkLock.Unlock()
 	netWork,ok := netWorkMap[addr]
 	if ok {
 		netWork.Conn.Close()
 		delete(netWorkMap,addr)
-		netWork.CloseChan <- true
+		close(netWork.ReadChan)
+		close(netWork.WriteChan)
+		fmt.Println("close network")
 	}
-	defer netWorkLock.Unlock()
+
 }

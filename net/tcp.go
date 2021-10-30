@@ -38,10 +38,15 @@ func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 				copy(copyByte,frame)
 				if len(copyByte) > 0 {
 					netWork := network.GetNetWork(c.RemoteAddr().String())
-					if netWork != nil {
-						codeDe(copyByte,netWork)
+					if netWork!= nil && !netWork.IsClose {
+						netWork.Lock.Lock()
+						defer netWork.Lock.Unlock()
+						netWork.SetIsClose()
+						if netWork != nil {
+							codeDe(copyByte,netWork)
+						}
+						netWork.SetIsClose()
 					}
-
 				}
 			}
 		})
@@ -69,7 +74,14 @@ func (t *tcpServer) OnShutdown(svr gnet.Server) {
 }
 
 func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
-	network.DelNetWork(c.RemoteAddr().String())
+	netWork := network.GetNetWork(c.RemoteAddr().String())
+	if netWork != nil && !netWork.IsClose {
+		netWork.Lock.Lock()
+		netWork.SetIsClose()
+		netWork.Lock.Unlock()
+		network.DelNetWork(c.RemoteAddr().String())
+	}
+
 	return gnet.Close
 }
 
