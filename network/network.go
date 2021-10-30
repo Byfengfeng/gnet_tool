@@ -6,6 +6,7 @@ import (
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"github.com/panjf2000/gnet"
 	"sync"
+	"sync/atomic"
 )
 
 type NetWork struct {
@@ -13,13 +14,15 @@ type NetWork struct {
 	ReadChan chan []byte
 	WriteChan chan []byte
 	IsClose bool
-	Lock sync.Mutex
+	ReadLock sync.Mutex
+	WriteLock sync.Mutex
 
 }
 
 var(
 	netWorkMap = make(map[string]*NetWork)
 	netWorkLock = sync.RWMutex{}
+	count uint32
 )
 
 func NewNetWork(c gnet.Conn) inter.INetwork {
@@ -31,7 +34,7 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 		t.Conn.Close()
 		t.Conn = c
 	}else{
-		t = &NetWork{c,make(chan[]byte),make(chan[]byte),false,sync.Mutex{}}
+		t = &NetWork{c,make(chan[]byte),make(chan[]byte),false,sync.Mutex{},sync.Mutex{}}
 		netWorkMap[address] = t
 	}
 	return t
@@ -42,7 +45,7 @@ func (n *NetWork) read()  {
 		select {
 		case reqBytes := <- n.ReadChan:
 			if len(reqBytes) == 0 {
-				fmt.Println("read off")
+				//fmt.Println("read off")
 				return
 			}
 			//读取数据
@@ -62,7 +65,7 @@ func (n *NetWork) write()  {
 				return
 			}
 		}else{
-			fmt.Println("write off")
+			//fmt.Println("write off")
 			return
 		}
 	}
@@ -85,6 +88,7 @@ func GetNetWork(address string) *NetWork {
 	if ok {
 		return netWork
 	}
+	recover()
 	return nil
 }
 
@@ -97,7 +101,9 @@ func DelNetWork(addr string)  {
 		delete(netWorkMap,addr)
 		close(netWork.ReadChan)
 		close(netWork.WriteChan)
-		fmt.Println("close network")
+		//fmt.Println("close network")
+		atomic.AddUint32(&count,1)
+
 	}
 
 }

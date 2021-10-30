@@ -39,8 +39,8 @@ func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 				if len(copyByte) > 0 {
 					netWork := network.GetNetWork(c.RemoteAddr().String())
 					if netWork!= nil && !netWork.IsClose {
-						netWork.Lock.Lock()
-						defer netWork.Lock.Unlock()
+						netWork.ReadLock.Lock()
+						defer netWork.ReadLock.Unlock()
 						netWork.SetIsClose()
 						if netWork != nil {
 							codeDe(copyByte,netWork)
@@ -71,14 +71,15 @@ func (t *tcpServer) OnOpened(c gnet.Conn) (out []byte, action gnet.Action)  {
 }
 
 func (t *tcpServer) OnShutdown(svr gnet.Server) {
+	return
 }
 
 func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	netWork := network.GetNetWork(c.RemoteAddr().String())
 	if netWork != nil && !netWork.IsClose {
-		netWork.Lock.Lock()
+		netWork.ReadLock.Lock()
 		netWork.SetIsClose()
-		netWork.Lock.Unlock()
+		netWork.ReadLock.Unlock()
 		network.DelNetWork(c.RemoteAddr().String())
 	}
 
@@ -94,5 +95,7 @@ func (t *tcpServer) Start() (err error) {
 	options = append(options,gnet.WithNumEventLoop(200))
 	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.tcpVersion,t.addr,t.ip),
 		options...)
+
 	return
 }
+
