@@ -42,7 +42,6 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	}
 	//isLogin
 	if !_users.IsLogin(address) {
-		_users.AddUserByAddr(netWork)
 		if code != 1001 {
 			log.Logger.Error("err user not login  ")
 			OffLine(address)
@@ -58,19 +57,27 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	case <- timer.C:
 		log.Logger.Error("err res time out ")
 		_users.UserKickOut(address)
-	case res:= <-resChan:
-		if ctx.Cid == 0 {
-			_users.AddUserByCid(ctx.Addr,1)
+	case res := <-resChan:
+		switch resData := res.(type) {
+		case func(interface{}):
+			timer.Stop()
+			_codePkt.PutReqPkt(code,reqPkt)
+			bytes := _codePkt.EncodeRes(code, resData)
+			_users.Response(address,bytes)
 		}
-		timer.Stop()
-		_codePkt.PutReqPkt(code,reqPkt)
-		bytes := _codePkt.EncodeRes(code, res.(func(interface{})))
-		_users.Response(address,bytes)
 	}
 }
 
 func OffLine(addr string)  {
 	_users.UserKickOut(addr)
+}
+
+func NewChannel(n inter.INetwork)  {
+	_users.AddUserByAddr(n)
+}
+
+func GetNetWorkByAddr(addr string) inter.INetwork {
+	return _users.GetUserByAddr(addr)
 }
 
 func init() {

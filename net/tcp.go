@@ -9,6 +9,7 @@ import (
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet"
+	"go.uber.org/zap"
 	"runtime/debug"
 	"time"
 )
@@ -81,7 +82,6 @@ func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	if netWork != nil && !netWork.GetClose() {
 		netWork.CloseCid()
 	}
-	freeOs()
 	return gnet.Close
 }
 
@@ -101,8 +101,16 @@ func (t *tcpServer) Start() (err error) {
 }
 
 func freeOs() {
-	if network.GetCloseCount() > 100 {
-		debug.FreeOSMemory()
-		network.ResetCount()
+	t := 1
+	if network.GetCloseCount() > 0 {
+		t = 2
 	}
+	timer := time.NewTicker(time.Duration(t)*time.Minute)
+	select {
+	case <-timer.C:
+		log.Logger.Info("开始执行内存释放：",zap.Int("time：",t))
+		debug.FreeOSMemory()
+		freeOs()
+	}
+
 }

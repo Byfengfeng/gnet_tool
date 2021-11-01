@@ -22,30 +22,20 @@ type NetWork struct {
 }
 
 var(
-	netWorkMap = make(map[string]*NetWork)
-	netWorkLock = sync.RWMutex{}
 	count uint32
 )
 
 func NewNetWork(c gnet.Conn) inter.INetwork {
 	address := c.RemoteAddr().String()
-	netWorkLock.Lock()
-	defer netWorkLock.Unlock()
-	t,ok := netWorkMap[address]
-	if ok {
-		t.Conn.Close()
-		t.Conn = c
-	}else{
-		t = &NetWork{c,
-			make(chan[]byte),
-			make(chan[]byte),
-			false,
-			sync.Mutex{},
-			sync.Mutex{},
-			code_tool.NewIRequestCtx(0,address),
-		}
-		netWorkMap[address] = t
+	t := &NetWork{c,
+		make(chan[]byte),
+		make(chan[]byte),
+		false,
+		sync.Mutex{},
+		sync.Mutex{},
+		code_tool.NewIRequestCtx(0,address),
 	}
+	code_tool.NewChannel(t)
 	return t
 }
 
@@ -59,7 +49,7 @@ func (n *NetWork) read()  {
 			}
 			//读取数据
 			code, data := utils.Decode(reqBytes)
-			log.Logger.Info("收到消息:",zap.Uint16("code:",code),zap.String("data:",string(data)))
+			log.Logger.Info("收到消息:"+string(data),zap.Uint16("code:",code))
 			code_tool.Request(n.Ctx.Addr,n,code,data)
 		}
 	}
@@ -110,13 +100,7 @@ func  (n *NetWork) CloseCid()  {
 }
 
 func GetNetWork(address string) inter.INetwork {
-	netWorkLock.Lock()
-	defer netWorkLock.Unlock()
-	netWork,ok := netWorkMap[address]
-	if ok {
-		return netWork
-	}
-	return nil
+	return code_tool.GetNetWorkByAddr(address)
 }
 
 func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
@@ -124,11 +108,7 @@ func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
 }
 
 func (n *NetWork) DelNetWork()  {
-	netWorkLock.Lock()
-	defer netWorkLock.Unlock()
-	addr := n.RemoteAddr().String()
 	n.Conn.Close()
-	delete(netWorkMap,addr)
 	close(n.ReadChan)
 	close(n.WriteChan)
 	log.Logger.Info("close network")
@@ -146,9 +126,10 @@ func (n *NetWork) GetAddr() string {
 }
 
 func GetCloseCount() uint32 {
+	if count == 0 {
+		defer func() {
+			count++
+		}()
+	}
 	return count
-}
-
-func ResetCount()  {
-	count = 0
 }

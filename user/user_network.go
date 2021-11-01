@@ -52,6 +52,14 @@ func (u *userMapperService) AddUserByCid(addr string,cid int64)  {
 	}
 }
 
+func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
+	n,ok := u.addressMapperINetwork[addr]
+	if ok {
+		return n
+	}
+	return nil
+}
+
 func (u *userMapperService) UserKickOut(where interface{}) {
 	var user inter.INetwork
 	switch ifData := where.(type) {

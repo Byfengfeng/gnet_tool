@@ -91,9 +91,9 @@ func (c *CodecBase) DecodeRes(code uint16, bytes []byte) (interface{}, error) {
 	return packet, nil
 }
 
-func (c *CodecBase) EncodeRes(code uint16,pkt func(interface{})) []byte{
+func (c *CodecBase) EncodeRes(code uint16,set func(interface{})) []byte{
 	resPkt := c.GetResPkt(code).(proto.Message)
-	pkt(resPkt)
+	set(resPkt)
 	bytes, err := proto.Marshal(resPkt)
 	if err != nil {
 		log.Logger.Error("pb序列化失败")
