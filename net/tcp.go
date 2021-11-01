@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/code_tool"
+	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/network"
 	"github.com/Byfengfeng/gnet_tool/utils"
@@ -18,6 +19,7 @@ type tcpServer struct {
 	addr	   string
 	ip		   uint16
 	multicore  bool
+	network.NetWork
 }
 
 func (t *tcpServer) NewEventHandler() gnet.EventHandler {
@@ -40,12 +42,10 @@ func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 				copy(copyByte,frame)
 				if len(copyByte) > 0 {
 					netWork := network.GetNetWork(c.RemoteAddr().String())
-					if netWork!= nil && !netWork.IsClose {
-						netWork.SetIsClose()
+					if netWork!= nil {
 						if netWork != nil {
 							codeDe(copyByte,netWork)
 						}
-						netWork.SetIsClose()
 					}
 				}
 			}
@@ -53,11 +53,13 @@ func (t *tcpServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 		return
 }
 
-func codeDe(frame []byte,network *network.NetWork) {
+func codeDe(frame []byte,network inter.INetwork) {
 	data, remainingByte := utils.DecodeRound(frame)
-	network.ReadChan <- data
-	if len(remainingByte) > 0 {
-		codeDe(remainingByte,network)
+	if !network.GetClose() {
+		network.WriteReadChan(data)
+		if len(remainingByte) > 0 {
+			codeDe(remainingByte,network)
+		}
 	}
 }
 
@@ -76,9 +78,8 @@ func (t *tcpServer) OnShutdown(svr gnet.Server) {
 
 func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	netWork := network.GetNetWork(c.RemoteAddr().String())
-	if netWork != nil && !netWork.IsClose {
-		netWork.SetIsClose()
-		network.DelNetWork(c.RemoteAddr().String())
+	if netWork != nil && !netWork.GetClose() {
+		netWork.CloseCid()
 	}
 	freeOs()
 	return gnet.Close

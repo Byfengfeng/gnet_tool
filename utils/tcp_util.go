@@ -2,7 +2,7 @@ package utils
 
 func DecodeRound(bytes []byte) (data []byte,remainingByte []byte) {
 	length := Length(bytes)
-	data = bytes[2:length-1]
+	data = bytes[2:]
 	if len(bytes) > int(length) {
 		remainingByte =  bytes[length:]
 	}

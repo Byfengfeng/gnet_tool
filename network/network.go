@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/Byfengfeng/gnet_tool/code_tool"
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/utils"
@@ -15,9 +16,9 @@ type NetWork struct {
 	ReadChan chan []byte
 	WriteChan chan []byte
 	IsClose bool
-	ReadLock sync.Mutex
+	CloseLock sync.Mutex
 	WriteLock sync.Mutex
-
+	Ctx *code_tool.IRequestCtx
 }
 
 var(
@@ -35,7 +36,14 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 		t.Conn.Close()
 		t.Conn = c
 	}else{
-		t = &NetWork{c,make(chan[]byte),make(chan[]byte),false,sync.Mutex{},sync.Mutex{}}
+		t = &NetWork{c,
+			make(chan[]byte),
+			make(chan[]byte),
+			false,
+			sync.Mutex{},
+			sync.Mutex{},
+			code_tool.NewIRequestCtx(0,address),
+		}
 		netWorkMap[address] = t
 	}
 	return t
@@ -52,6 +60,7 @@ func (n *NetWork) read()  {
 			//读取数据
 			code, data := utils.Decode(reqBytes)
 			log.Logger.Info("收到消息:",zap.Uint16("code:",code),zap.String("data:",string(data)))
+			code_tool.Request(n.Ctx.Addr,n,code,data)
 		}
 	}
 }
@@ -77,37 +86,63 @@ func (n *NetWork) Start()  {
 	go n.write()
 }
 
-func (n *NetWork) SetIsClose()  {
-	n.ReadLock.Lock()
-	defer n.ReadLock.Unlock()
-	n.IsClose = !n.IsClose
+func (n *NetWork) GetCtx() interface{} {
+	return n.Ctx
 }
 
+func (n *NetWork) WriteReadChan(data []byte)  {
+	n.ReadChan <- data
+}
 
-func GetNetWork(address string) *NetWork {
+func (n *NetWork) WriteWriteChan(data []byte)  {
+	n.WriteChan <- data
+}
+
+func (n *NetWork) SetIsClose()  {
+	n.CloseLock.Lock()
+	defer n.CloseLock.Unlock()
+	n.IsClose = true
+	n.DelNetWork()
+}
+
+func  (n *NetWork) CloseCid()  {
+	code_tool.OffLine(n.Ctx.Addr)
+}
+
+func GetNetWork(address string) inter.INetwork {
 	netWorkLock.Lock()
 	defer netWorkLock.Unlock()
 	netWork,ok := netWorkMap[address]
 	if ok {
 		return netWork
 	}
-	recover()
 	return nil
 }
 
-func DelNetWork(addr string)  {
+func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
+	return GetNetWork(address)
+}
+
+func (n *NetWork) DelNetWork()  {
 	netWorkLock.Lock()
 	defer netWorkLock.Unlock()
-	netWork,ok := netWorkMap[addr]
-	if ok {
-		netWork.Conn.Close()
-		delete(netWorkMap,addr)
-		close(netWork.ReadChan)
-		close(netWork.WriteChan)
-		log.Logger.Info("close network")
-		atomic.AddUint32(&count,1)
-	}
+	addr := n.RemoteAddr().String()
+	n.Conn.Close()
+	delete(netWorkMap,addr)
+	close(n.ReadChan)
+	close(n.WriteChan)
+	log.Logger.Info("close network")
+	atomic.AddUint32(&count,1)
+}
 
+func (n *NetWork) GetClose() bool {
+	n.CloseLock.Lock()
+	defer n.CloseLock.Unlock()
+	return n.IsClose
+}
+
+func (n *NetWork) GetAddr() string {
+	return n.RemoteAddr().String()
 }
 
 func GetCloseCount() uint32 {
