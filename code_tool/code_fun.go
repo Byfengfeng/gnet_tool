@@ -85,6 +85,10 @@ func GetCodePkt() *CodecBase {
 	return _codePkt
 }
 
+func UserAddCid(addr string,cid int64)  {
+	_users.AddUserByCid(addr,cid)
+}
+
 func Set() {
 	_codePkt.BindPool(1001, func() interface{} {
 		return &pb.ReqLogin{}
