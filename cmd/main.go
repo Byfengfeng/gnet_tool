@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/Byfengfeng/gnet_tool/code_tool"
 	"github.com/Byfengfeng/gnet_tool/net"
 	"github.com/Byfengfeng/gnet_tool/utils"
 )
@@ -17,7 +16,6 @@ func main() {
 		}
 	}()
 
-	code_tool.Set()
 	//strs := make(chan []byte)
 	//go func() {
 	//	for  {

@@ -72,7 +72,10 @@ func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
 	return nil
 }
 
-func (u *userMapperService) UserKickOut(addr string,cid int64) {
+func (u *userMapperService) UserKickOut(addr string,cid int64,isExit bool) {
+	if !isExit {
+		//... 被踢下线、登出
+	}
 	log.Logger.Info("user close ",zap.Int64("cid:",cid),zap.String("addr:",addr))
 	var user inter.INetwork
 	user = u.GetUserByAddr(addr)

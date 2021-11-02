@@ -101,7 +101,6 @@ func (t *tcpServer) Start() (err error) {
 }
 
 func freeOs() {
-
 	if network.GetCloseCount() > 100 {
 		log.Logger.Info("开始执行内存释放：",zap.Uint32("time：",network.GetCloseCount()))
 		debug.FreeOSMemory()

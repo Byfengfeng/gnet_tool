@@ -3,9 +3,7 @@ package code_tool
 import (
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
-	"github.com/Byfengfeng/gnet_tool/pb"
 	"github.com/Byfengfeng/gnet_tool/user"
-	"github.com/Byfengfeng/gnet_tool/utils"
 	"go.uber.org/zap"
 	"time"
 )
@@ -53,7 +51,7 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	select {
 	case <- timer.C:
 		log.Logger.Error("err res time out ")
-		_users.UserKickOut(address,ctx.Cid)
+		_users.UserKickOut(address,ctx.Cid,false)
 	case res := <-resChan:
 		switch resData := res.(type) {
 		case func(interface{}):
@@ -66,7 +64,8 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 }
 
 func OffLine(addr string,cid int64)  {
-	_users.UserKickOut(addr,cid)
+	//下线
+	_users.UserKickOut(addr,cid,false)
 }
 
 func NewChannel(n inter.INetwork)  {
@@ -87,23 +86,4 @@ func GetCodePkt() *CodecBase {
 
 func UserAddCid(addr string,cid int64)  {
 	_users.AddUserByCid(addr,cid)
-}
-
-func Set() {
-	_codePkt.BindPool(1001, func() interface{} {
-		return &pb.ReqLogin{}
-	}, func() interface{} {
-		return &pb.ResLogin{}
-	})
-	_codeResponse[1001] = func(ctx IRequestCtx, pkt interface{}, resCh chan<- interface{}) {
-		req := pkt.(*pb.ReqLogin)
-		if len(req.Token) > 0{
-			ctx.Cid = utils.GetSnowflakeId()
-			_users.AddUserByCid(ctx.Addr,ctx.Cid)
-		}
-		resCh <- func(pkt interface{}) {
-			res := pkt.(*pb.ResLogin)
-			res.Cid = ctx.Cid
-		}
-	}
 }
