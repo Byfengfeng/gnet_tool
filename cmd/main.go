@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Byfengfeng/gnet_tool/code_tool"
 	"github.com/Byfengfeng/gnet_tool/net"
 	"github.com/Byfengfeng/gnet_tool/utils"
 )
@@ -9,10 +10,14 @@ import (
 func main() {
 	//go freeOs()
 	tcpServer := net.NewTcpServer("tcp6","", 9000, true)
-	err := tcpServer.Start()
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		err := tcpServer.Start()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	code_tool.Set()
 	//strs := make(chan []byte)
 	//go func() {
 	//	for  {

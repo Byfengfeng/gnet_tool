@@ -16,11 +16,16 @@ type IRequestCtx struct {
 }
 
 var(
+	_codeResponse map[uint16]FuncUserResponse
+	_codePkt *CodecBase
+	_users inter.IUserMapper
+)
+
+func init() {
 	_codeResponse = make(map[uint16]FuncUserResponse)
 	_codePkt = NewCodecProto()
 	_users = user.NewUserMapperService()
-)
-
+}
 func NewIRequestCtx(cid int64,addr string) *IRequestCtx {
 	return &IRequestCtx{cid,addr}
 }
@@ -80,7 +85,7 @@ func GetCodePkt() *CodecBase {
 	return _codePkt
 }
 
-func init() {
+func Set() {
 	_codePkt.BindPool(1001, func() interface{} {
 		return &pb.ReqLogin{}
 	}, func() interface{} {
