@@ -4,19 +4,24 @@ import (
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"go.uber.org/zap"
+	"sync"
 )
 
 type userMapperService struct {
 	addressMapperINetwork map[string]inter.INetwork
 	cidMapperAddress map[int64]string
+	delLock sync.Mutex
 }
 
 func NewUserMapperService() inter.IUserMapper {
-	return &userMapperService{make(map[string]inter.INetwork,0),make(map[int64]string,0)}
+	return &userMapperService{
+		make(map[string]inter.INetwork,0),
+		make(map[int64]string,0),
+		sync.Mutex{}}
 }
 
 func (u *userMapperService) Response(address string,data []byte)  {
-	iNetwork := u.addressMapperINetwork[address]
+	iNetwork := u.GetUserByAddr(address)
 	if iNetwork != nil && !iNetwork.GetClose(){
 		if !iNetwork.GetClose() {
 			iNetwork.WriteWriteChan(data)
@@ -40,12 +45,17 @@ func (u *userMapperService) IsLogin(where interface{}) bool {
 }
 
 func (u *userMapperService) AddUserByAddr(netWork inter.INetwork)  {
+	u.delLock.Lock()
+	defer u.delLock.Unlock()
 	u.addressMapperINetwork[netWork.GetAddr()] = netWork
 }
 
 func (u *userMapperService) AddUserByCid(addr string,cid int64)  {
-	_,ok := u.addressMapperINetwork[addr]
+	u.delLock.Lock()
+	defer u.delLock.Unlock()
+	user,ok := u.addressMapperINetwork[addr]
 	if ok {
+		user.SetCid(cid)
 		u.cidMapperAddress[cid] = addr
 	}else{
 		log.Logger.Error("找不到netWork",zap.String("addr:",addr))
@@ -53,6 +63,8 @@ func (u *userMapperService) AddUserByCid(addr string,cid int64)  {
 }
 
 func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
+	u.delLock.Lock()
+	defer u.delLock.Unlock()
 	n,ok := u.addressMapperINetwork[addr]
 	if ok {
 		return n
@@ -60,26 +72,15 @@ func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
 	return nil
 }
 
-func (u *userMapperService) UserKickOut(where interface{}) {
+func (u *userMapperService) UserKickOut(addr string,cid int64) {
+	log.Logger.Info("user close ",zap.Int64("cid:",cid),zap.String("addr:",addr))
 	var user inter.INetwork
-	switch ifData := where.(type) {
-	case string:
-		newUser,ok := u.addressMapperINetwork[ifData]
-		if ok {
-			user = newUser
-		}
-	case int64:
-		addr,ok := u.cidMapperAddress[ifData]
-		if ok {
-			newUser,ok1 := u.addressMapperINetwork[addr]
-			if ok1 {
-				user = newUser
-			}else{
-				delete(u.addressMapperINetwork,addr)
-			}
-		}
-	}
+	user = u.GetUserByAddr(addr)
 	if user != nil {
+		u.delLock.Lock()
+		delete(u.addressMapperINetwork,addr)
+		delete(u.cidMapperAddress,cid)
+		u.delLock.Unlock()
 		user.SetIsClose()
 	}
 	return

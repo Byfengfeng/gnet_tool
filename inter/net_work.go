@@ -7,8 +7,8 @@ type INetwork interface {
 	WriteReadChan(data []byte)
 	GetCtx() interface{}
 	WriteWriteChan(data []byte)
-	DelNetWork()
 	GetAddr() string
+	SetCid(cid int64)
 	GetNetWorkBy(address string) INetwork
 	CloseCid()
 }

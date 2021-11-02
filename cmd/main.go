@@ -13,7 +13,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	//strs := make(chan []byte)
 	//go func() {
 	//	for  {

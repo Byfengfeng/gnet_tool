@@ -40,14 +40,6 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 		log.Logger.Error("err req code not fail ",zap.Error(err))
 		return
 	}
-	//isLogin
-	if !_users.IsLogin(address) {
-		if code != 1001 {
-			log.Logger.Error("err user not login  ")
-			OffLine(address)
-			return
-		}
-	}
 	//hanDel
 	resChan := make(chan interface{},1)
 	ctx := netWork.GetCtx().(*IRequestCtx)
@@ -56,7 +48,7 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	select {
 	case <- timer.C:
 		log.Logger.Error("err res time out ")
-		_users.UserKickOut(address)
+		_users.UserKickOut(address,ctx.Cid)
 	case res := <-resChan:
 		switch resData := res.(type) {
 		case func(interface{}):
@@ -68,8 +60,8 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	}
 }
 
-func OffLine(addr string)  {
-	_users.UserKickOut(addr)
+func OffLine(addr string,cid int64)  {
+	_users.UserKickOut(addr,cid)
 }
 
 func NewChannel(n inter.INetwork)  {
@@ -78,6 +70,14 @@ func NewChannel(n inter.INetwork)  {
 
 func GetNetWorkByAddr(addr string) inter.INetwork {
 	return _users.GetUserByAddr(addr)
+}
+
+func GetCodeResponse() map[uint16]FuncUserResponse {
+	return _codeResponse
+}
+
+func GetCodePkt() *CodecBase {
+	return _codePkt
 }
 
 func init() {
@@ -89,7 +89,8 @@ func init() {
 	_codeResponse[1001] = func(ctx IRequestCtx, pkt interface{}, resCh chan<- interface{}) {
 		req := pkt.(*pb.ReqLogin)
 		if len(req.Token) > 0{
-			ctx.Cid = utils.GetId()
+			ctx.Cid = utils.GetSnowflakeId()
+			_users.AddUserByCid(ctx.Addr,ctx.Cid)
 		}
 		resCh <- func(pkt interface{}) {
 			res := pkt.(*pb.ResLogin)

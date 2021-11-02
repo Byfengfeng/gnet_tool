@@ -82,17 +82,17 @@ func (t *tcpServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	if netWork != nil && !netWork.GetClose() {
 		netWork.CloseCid()
 	}
+
 	return gnet.Close
 }
 
 func (t *tcpServer) Start() (err error) {
-	go freeOs()
 	options := make([]gnet.Option,0)
 	if t.multicore {
 		options = append(options,gnet.WithMulticore(t.multicore))
 	}
 	options = append(options,gnet.WithCodec(code_tool.NewICodec()))
-	options = append(options,gnet.WithNumEventLoop(200))
+	options = append(options,gnet.WithNumEventLoop(2000))
 	options = append(options,gnet.WithLogger(log.DefaultLogger()))
 
 	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.tcpVersion,t.addr,t.ip),
@@ -101,16 +101,11 @@ func (t *tcpServer) Start() (err error) {
 }
 
 func freeOs() {
-	t := 1
-	if network.GetCloseCount() > 0 {
-		t = 2
-	}
-	timer := time.NewTicker(time.Duration(t)*time.Minute)
-	select {
-	case <-timer.C:
-		log.Logger.Info("开始执行内存释放：",zap.Int("time：",t))
+
+	if network.GetCloseCount() > 100 {
+		log.Logger.Info("开始执行内存释放：",zap.Uint32("time：",network.GetCloseCount()))
 		debug.FreeOSMemory()
+		network.SetCount()
 		freeOs()
 	}
-
 }

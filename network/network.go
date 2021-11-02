@@ -17,7 +17,6 @@ type NetWork struct {
 	WriteChan chan []byte
 	IsClose bool
 	CloseLock sync.Mutex
-	WriteLock sync.Mutex
 	Ctx *code_tool.IRequestCtx
 }
 
@@ -31,7 +30,6 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 		make(chan[]byte),
 		make(chan[]byte),
 		false,
-		sync.Mutex{},
 		sync.Mutex{},
 		code_tool.NewIRequestCtx(0,address),
 	}
@@ -92,11 +90,15 @@ func (n *NetWork) SetIsClose()  {
 	n.CloseLock.Lock()
 	defer n.CloseLock.Unlock()
 	n.IsClose = true
-	n.DelNetWork()
+	n.Conn.Close()
+	close(n.ReadChan)
+	close(n.WriteChan)
+	log.Logger.Info("close network")
+	atomic.AddUint32(&count,1)
 }
 
 func  (n *NetWork) CloseCid()  {
-	code_tool.OffLine(n.Ctx.Addr)
+	code_tool.OffLine(n.Ctx.Addr,n.Ctx.Cid)
 }
 
 func GetNetWork(address string) inter.INetwork {
@@ -105,14 +107,6 @@ func GetNetWork(address string) inter.INetwork {
 
 func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
 	return GetNetWork(address)
-}
-
-func (n *NetWork) DelNetWork()  {
-	n.Conn.Close()
-	close(n.ReadChan)
-	close(n.WriteChan)
-	log.Logger.Info("close network")
-	atomic.AddUint32(&count,1)
 }
 
 func (n *NetWork) GetClose() bool {
@@ -125,11 +119,15 @@ func (n *NetWork) GetAddr() string {
 	return n.RemoteAddr().String()
 }
 
+func (n *NetWork) SetCid(cid int64)  {
+	n.Ctx.Cid = cid
+}
+
 func GetCloseCount() uint32 {
-	if count == 0 {
-		defer func() {
-			count++
-		}()
-	}
 	return count
 }
+
+func SetCount() {
+	count = 0
+}
+
