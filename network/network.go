@@ -65,7 +65,7 @@ func (n *NetWork) write()  {
 			}else{
 				err = n.Conn.SendTo(data)
 			}
-			
+
 			if err != nil {
 				log.Logger.Error("发送消息异常",zap.Any("err",err))
 				return

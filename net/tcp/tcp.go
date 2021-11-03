@@ -14,9 +14,7 @@ func TcpReact(frame []byte, c gnet.Conn)  {
 		if len(copyByte) > 0 {
 			netWork := network.GetNetWork(c.RemoteAddr().String())
 			if netWork!= nil {
-				if netWork != nil {
-					TcpCodeDe(copyByte,netWork)
-				}
+				TcpCodeDe(copyByte,netWork)
 			}
 		}
 	}
