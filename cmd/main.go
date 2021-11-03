@@ -16,6 +16,7 @@ func main() {
 		}
 	}()
 
+
 	//strs := make(chan []byte)
 	//go func() {
 	//	for  {

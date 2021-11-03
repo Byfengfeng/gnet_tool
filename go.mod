@@ -12,4 +12,5 @@ require (
 	github.com/panjf2000/ants/v2 v2.4.6
 	github.com/panjf2000/gnet v1.5.3
 	go.uber.org/zap v1.18.1
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 )
