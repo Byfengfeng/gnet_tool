@@ -41,7 +41,7 @@ func (t *netServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Ac
 		if t.netVersion == "tcp" || t.netVersion == "tcp4" || t.netVersion == "tcp6"{
 			tcp.TcpReact(frame,c)
 		}else{
-			udp.UdpReact(frame,c)
+			udp.UdpReact(frame,c,t.netVersion)
 		}
 	})
 	return
@@ -52,7 +52,7 @@ func (t *netServer) Tick() (delay time.Duration, action gnet.Action) {
 }
 
 func (t *netServer) OnOpened(c gnet.Conn) (out []byte, action gnet.Action)  {
-	network.NewNetWork(c).Start()
+	network.NewNetWork(c,t.netVersion).Start()
 	return
 }
 

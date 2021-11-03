@@ -18,13 +18,14 @@ type NetWork struct {
 	IsClose bool
 	CloseLock sync.Mutex
 	Ctx *code_tool.IRequestCtx
+	netV string
 }
 
 var(
 	count uint32
 )
 
-func NewNetWork(c gnet.Conn) inter.INetwork {
+func NewNetWork(c gnet.Conn,netV string) inter.INetwork {
 	address := c.RemoteAddr().String()
 	t := &NetWork{c,
 		make(chan[]byte),
@@ -32,6 +33,7 @@ func NewNetWork(c gnet.Conn) inter.INetwork {
 		false,
 		sync.Mutex{},
 		code_tool.NewIRequestCtx(0,address),
+		netV,
 	}
 	code_tool.NewChannel(t)
 	return t
@@ -57,7 +59,13 @@ func (n *NetWork) write()  {
 	for  {
 		data := <- n.WriteChan
 		if len(data) > 0 {
-			err := n.Conn.AsyncWrite(data)
+			var err error
+			if n.netV == "tcp" || n.netV == "tcp4" || n.netV == "tcp6"{
+				err = n.Conn.AsyncWrite(data)
+			}else{
+				err = n.Conn.SendTo(data)
+			}
+			
 			if err != nil {
 				log.Logger.Error("发送消息异常",zap.Any("err",err))
 				return

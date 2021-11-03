@@ -5,7 +5,7 @@ import (
 	"github.com/panjf2000/gnet"
 )
 
-func UdpReact(frame []byte,c gnet.Conn){
+func UdpReact(frame []byte,c gnet.Conn,netV string){
 	if len(frame) > 0{
 		copyByte := make([]byte,len(frame))
 		copy(copyByte,frame)
@@ -16,7 +16,7 @@ func UdpReact(frame []byte,c gnet.Conn){
 					netWork.WriteReadChan(frame)
 				}
 			}else{
-				netWork = network.NewNetWork(c)
+				netWork = network.NewNetWork(c,netV)
 				netWork.Start()
 				if !netWork.GetClose() {
 					netWork.WriteReadChan(frame)
