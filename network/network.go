@@ -131,6 +131,10 @@ func (n *NetWork) SetCid(cid int64)  {
 	n.Ctx.Cid = cid
 }
 
+func (n *NetWork) SetUid(uid int64)  {
+	n.Ctx.Uid = uid
+}
+
 func GetCloseCount() uint32 {
 	return count
 }
