@@ -6,5 +6,6 @@ type IUserMapper interface {
 	UserKickOut(addr string,cid int64,isExit bool)
 	AddUserByAddr(netWork INetwork)
 	AddUserByCid(addr string,cid int64)
+	AddUserByUid(addr string,uid int64)
 	GetUserByAddr(addr string) INetwork
 }

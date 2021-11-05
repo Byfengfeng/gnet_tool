@@ -88,3 +88,7 @@ func GetCodePkt() *CodecBase {
 func UserAddCid(addr string,cid int64)  {
 	_users.AddUserByCid(addr,cid)
 }
+
+func UserAddUid(addr string,uid int64)  {
+	_users.AddUserByUid(addr,uid)
+}

@@ -62,6 +62,18 @@ func (u *userMapperService) AddUserByCid(addr string,cid int64)  {
 	}
 }
 
+func (u *userMapperService) AddUserByUid(addr string,uid int64)  {
+	u.delLock.Lock()
+	defer u.delLock.Unlock()
+	user,ok := u.addressMapperINetwork[addr]
+	if ok {
+		user.SetUid(uid)
+		u.cidMapperAddress[uid] = addr
+	}else{
+		log.Logger.Error("找不到netWork",zap.String("addr:",addr))
+	}
+}
+
 func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
 	u.delLock.Lock()
 	defer u.delLock.Unlock()

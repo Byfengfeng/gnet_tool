@@ -49,7 +49,6 @@ func (n *NetWork) read()  {
 			}
 			//读取数据
 			code, data := utils.Decode(reqBytes)
-			log.Logger.Info("收到消息:"+string(data),zap.Uint16("code:",code))
 			code_tool.Request(n.Ctx.Addr,n,code,data)
 		}
 	}
