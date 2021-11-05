@@ -10,6 +10,7 @@ import (
 
 type IRequestCtx struct {
 	Cid int64
+	Uid int64
 	Addr string
 }
 
@@ -25,7 +26,7 @@ func init() {
 	_users = user.NewUserMapperService()
 }
 func NewIRequestCtx(cid int64,addr string) *IRequestCtx {
-	return &IRequestCtx{cid,addr}
+	return &IRequestCtx{cid,cid,addr}
 }
 
 //处理用户请求
