@@ -4,6 +4,7 @@ import (
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/user"
+	"github.com/panjf2000/ants/v2"
 	"go.uber.org/zap"
 	"time"
 )
@@ -60,6 +61,18 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 			_codePkt.PutReqPkt(code,reqPkt)
 			bytes := _codePkt.EncodeRes(code, resData)
 			_users.Response(address,bytes)
+		}
+	}
+}
+
+func Send(code uint16,pkt func(interface{}),cidList ...int64)  {
+	bytes := _codePkt.EncodeRes(code, pkt)
+	for _,cid := range cidList {
+		addr := _users.GetUserByCid(cid)
+		if addr != "" {
+			ants.Submit(func() {
+				_users.Response(addr,bytes)
+			})
 		}
 	}
 }

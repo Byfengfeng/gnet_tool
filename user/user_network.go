@@ -84,6 +84,16 @@ func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
 	return nil
 }
 
+func (u *userMapperService) GetUserByCid(cid int64) string {
+	u.delLock.Lock()
+	defer u.delLock.Unlock()
+	a,ok := u.cidMapperAddress[cid]
+	if ok {
+		return a
+	}
+	return ""
+}
+
 func (u *userMapperService) UserKickOut(addr string,cid int64,isExit bool) {
 	if !isExit {
 		//... 被踢下线、登出

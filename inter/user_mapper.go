@@ -8,4 +8,5 @@ type IUserMapper interface {
 	AddUserByCid(addr string,cid int64)
 	AddUserByUid(addr string,uid int64)
 	GetUserByAddr(addr string) INetwork
+	GetUserByCid(cid int64) string
 }
