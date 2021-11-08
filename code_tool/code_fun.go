@@ -48,7 +48,9 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	//hanDel
 	resChan := make(chan interface{},1)
 	ctx := netWork.GetCtx().(*IRequestCtx)
-	reqFn(*ctx,reqPkt,resChan)
+	ants.Submit(func() {
+		reqFn(*ctx,reqPkt,resChan)
+	})
 	timer := time.NewTimer(5 * time.Second)
 	select {
 	case <- timer.C:
