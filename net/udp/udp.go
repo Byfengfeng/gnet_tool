@@ -11,16 +11,12 @@ func UdpReact(frame []byte,c gnet.Conn,netV string){
 		copy(copyByte,frame)
 		if len(copyByte) > 0 {
 			netWork := network.GetNetWork(c.RemoteAddr().String())
-			if netWork!= nil {
-				if !netWork.GetClose() {
-					netWork.WriteReadChan(frame)
-				}
-			}else{
+			if netWork == nil {
 				netWork = network.NewNetWork(c,netV)
 				netWork.Start()
-				if !netWork.GetClose() {
-					netWork.WriteReadChan(frame)
-				}
+			}
+			if !netWork.GetClose() {
+				netWork.WriteReadChan(frame)
 			}
 		}
 	}
