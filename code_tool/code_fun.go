@@ -55,7 +55,6 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 	select {
 	case <- timer.C:
 		log.Logger.Error("err res time out ")
-		_users.UserKickOut(address,ctx.Cid,false)
 	case res := <-resChan:
 		switch resData := res.(type) {
 		case func(interface{}):
@@ -63,6 +62,7 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 			_codePkt.PutReqPkt(code,reqPkt)
 			bytes := _codePkt.EncodeRes(code, resData)
 			_users.Response(address,bytes)
+			_codePkt.PutResPkt(code,resData)
 		}
 	}
 }
