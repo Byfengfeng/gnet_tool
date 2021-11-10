@@ -98,5 +98,6 @@ func (c *CodecBase) EncodeRes(code uint16,set func(interface{})) []byte{
 	if err != nil {
 		log.Logger.Error("pb序列化失败")
 	}
+	c.PutResPkt(code,resPkt)
 	return utils.Encode(code,bytes)
 }

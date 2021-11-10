@@ -62,7 +62,6 @@ func Request(address string,netWork inter.INetwork,code uint16,data []byte)  {
 			_codePkt.PutReqPkt(code,reqPkt)
 			bytes := _codePkt.EncodeRes(code, resData)
 			_users.Response(address,bytes)
-			_codePkt.PutResPkt(code,resData)
 		}
 	}
 }
