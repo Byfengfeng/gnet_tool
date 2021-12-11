@@ -80,7 +80,6 @@ func (t *netServer) Start() (err error) {
 
 	options = append(options,gnet.WithNumEventLoop(2000))
 	options = append(options,gnet.WithLogger(log.DefaultLogger()))
-
 	err = gnet.Serve(t.NewEventHandler(), fmt.Sprintf("%s://%s:%d",t.netVersion,t.addr,t.ip),
 		options...)
 	return
