@@ -5,48 +5,46 @@ import (
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/utils"
-	"github.com/panjf2000/gnet"
 	"go.uber.org/zap"
+	"net"
 	"sync"
 	"sync/atomic"
 )
 
 type NetWork struct {
-	gnet.Conn
+	*net.TCPConn
 	ReadChan chan []byte
 	WriteChan chan []byte
 	IsClose bool
-	CloseLock sync.Mutex
+	CloseLock sync.RWMutex
 	Ctx *code_tool.IRequestCtx
-	netV string
 }
 
 var(
 	count uint32
 )
 
-func NewNetWork(c gnet.Conn,netV string) inter.INetwork {
+func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
 	t := &NetWork{c,
 		make(chan[]byte),
 		make(chan[]byte),
 		false,
-		sync.Mutex{},
+		sync.RWMutex{},
 		code_tool.NewIRequestCtx(0,address),
-		netV,
 	}
 	code_tool.NewChannel(t)
-	return t
+	t.Start()
 }
 
 func (n *NetWork) read()  {
 	for  {
-		select {
-		case reqBytes := <- n.ReadChan:
-			if len(reqBytes) == 0 {
-				log.Logger.Info("read off")
-				return
-			}
+		n.TCPConn.Read()
+		reqBytes := <- n.ReadChan
+		if len(reqBytes) == 0 {
+			log.Logger.Info("read off")
+			return
+		}else{
 			//读取数据
 			code, data := utils.Decode(reqBytes)
 			code_tool.Request(n.Ctx.Addr,n,code,data)
@@ -58,13 +56,7 @@ func (n *NetWork) write()  {
 	for  {
 		data := <- n.WriteChan
 		if len(data) > 0 {
-			var err error
-			if n.netV == "tcp" || n.netV == "tcp4" || n.netV == "tcp6"{
-				err = n.Conn.AsyncWrite(data)
-			}else{
-				err = n.Conn.SendTo(data)
-			}
-
+			_,err := n.Write(data)
 			if err != nil {
 				log.Logger.Error("发送消息异常",zap.Any("err",err))
 				return
@@ -96,12 +88,14 @@ func (n *NetWork) WriteWriteChan(data []byte)  {
 func (n *NetWork) SetIsClose()  {
 	n.CloseLock.Lock()
 	defer n.CloseLock.Unlock()
-	n.IsClose = true
-	n.Conn.Close()
-	close(n.ReadChan)
-	close(n.WriteChan)
-	log.Logger.Info("close network")
-	atomic.AddUint32(&count,1)
+	if n.IsClose {
+		n.IsClose = false
+		n.TCPConn.Close()
+		close(n.ReadChan)
+		close(n.WriteChan)
+		log.Logger.Info("close network")
+		atomic.AddUint32(&count,1)
+	}
 }
 
 func  (n *NetWork) CloseCid()  {

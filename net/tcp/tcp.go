@@ -1,35 +1,43 @@
 package tcp
 
 import (
-	"github.com/Byfengfeng/gnet_tool/inter"
-	"github.com/Byfengfeng/gnet_tool/network"
-	"github.com/Byfengfeng/gnet_tool/utils"
-	"github.com/panjf2000/gnet"
+	"fmt"
+	"net"
 )
 
-func TcpReact(frame []byte, c gnet.Conn)  {
-	if len(frame) > 0 {
-		copyByte := make([]byte,len(frame))
-		copy(copyByte,frame)
-		if len(copyByte) > 0 {
-			netWork := network.GetNetWork(c.RemoteAddr().String())
-			if netWork!= nil {
-				TcpCodeDe(copyByte,netWork)
+type netListen struct {
+	address string
+	*net.TCPListener
+	channelHandel func(conn *net.TCPConn)
+}
+
+func NewNetListen(addr string,channelHandel func(con *net.TCPConn)) *netListen {
+	return &netListen{address: addr,channelHandel: channelHandel}
+}
+
+func (n * netListen) Start() error {
+	addr, err := net.ResolveTCPAddr("tcp", n.address)
+	if err != nil {
+		return err
+	}
+	n.TCPListener, err = net.ListenTCP("tcp", addr)
+	if err != nil {
+		return err
+	}
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println("listener", fmt.Errorf("%s", err))
 			}
+		}()
+		for {
+			tcpConn, err := n.TCPListener.AcceptTCP()
+			if err != nil {
+				fmt.Println("client channel exit", fmt.Errorf("%s", err))
+			}
+			n.channelHandel(tcpConn)
 		}
-	}
+	}()
+	fmt.Println("tcp listen start success")
+	return nil
 }
-
-func TcpCodeDe(frame []byte,network inter.INetwork) {
-	data, remainingByte := utils.DecodeRound(frame)
-	if !network.GetClose() {
-		network.WriteReadChan(data)
-		if len(remainingByte) > 0 {
-			TcpCodeDe(remainingByte,network)
-		}
-	}
-}
-
-
-
-

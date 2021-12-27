@@ -2,44 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/Byfengfeng/gnet_tool/net"
+	"github.com/Byfengfeng/gnet_tool/net/tcp"
+	"github.com/Byfengfeng/gnet_tool/network"
 	"github.com/Byfengfeng/gnet_tool/utils"
 )
 
 func main() {
-	//go freeOs()
-	tcpServer := net.NewTcpServer("tcp6","", 9000, true)
-	go func() {
-		err := tcpServer.Start()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-
-	//strs := make(chan []byte)
-	//go func() {
-	//	for  {
-	//		a := <-strs
-	//		if len(a) == 0 {
-	//			break
-	//		}
-	//		fmt.Println(a)
-	//	}
-	//
-	//	return
-	//}()
-	//
-	//for i:= 1; i < 50000; i++ {
-	//	strs <- []byte("abcdefg123")
-	//}
-	////strs <- 0
-	//time.Sleep(5 * time.Second)
-	//fmt.Println("close chan")
-	//close(strs)
-	//debug.FreeOSMemory()
-	//time.Sleep(10 * time.Second)
-
+	tcp.NewNetListen(":8999",network.NewNetWork())
 	<-make(chan struct{})
 
 	//TestPool()
