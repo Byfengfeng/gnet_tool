@@ -39,7 +39,6 @@ func NewNetWork(c *net.TCPConn) {
 
 func (n *NetWork) read()  {
 	for  {
-		n.TCPConn.Read()
 		reqBytes := <- n.ReadChan
 		if len(reqBytes) == 0 {
 			log.Logger.Info("read off")
