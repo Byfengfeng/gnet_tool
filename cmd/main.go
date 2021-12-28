@@ -1,44 +1,61 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+	"sync"
+)
 
 type S struct {
 	M *int
 }
-func main() {
-	//var p map[int]int
-	//p = make(map[int]int)
-	////l := sync.Mutex{}
-	//var wg = &sync.WaitGroup{}
-	//wg.Add(1)
-	//for i := 0; i < 2; i++ {
-	//	a := i
-	//
-	//	go func() {
-	//		wg.Wait()
-	//		defer wg.Done()
-	//		p[a] = 1
-	//	}()
-	//
-	//}
-	//
-	//for i := 0; i < 2; i++ {
-	//	fmt.Println(p[i])
-	//}
 
-	var x S
-	y := &x
-	identity(y)
+func main() {
+	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
+	//listData := QuickSort(data)
+	//fmt.Println(listData)
+	//source := []int{1, 2, 4, 5, 6}
+	//key := 5
+	//index := splitSort(source,key)
+	//fmt.Println(index)
+	//forDel()
+	//var arr = []int{2, 3, 4, 1}
+	//change(arr)
+	//fmt.Println(arr)
+	var p map[int]int
+	if p == nil {
+		
+	}
+	p = make(map[int]int,2)
+	////l := sync.Mutex{}
+	var wg = &sync.WaitGroup{}
+
+	for i := 0; i < 2; i++ {
+		//a := i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			p[i] = 1
+		}()
+		wg.Wait()
+	}
+
+	for i := 0; i < 2; i++ {
+		fmt.Println(p[i])
+	}
+
+	//var x S
+	//y := &x
+	//identity(y)
 	//a := new(int)
 	//b := t{}
 	//structtest(&b)
 	//refStruct(a)
 	//var a1 int = 1
 	//refStruct2(&a1)
-	var a *int
-	c := newT(a)
-	fmt.Println(c)
-	trick()
+	//var a *int
+	//c := newT(a)
+	//fmt.Println(c)、
 	//*i = 5
 	//j := refStruct()
 	//fmt.Println(*i)
@@ -47,6 +64,61 @@ func main() {
 	//<-make(chan struct{})
 
 	//TestPool()
+}
+
+func change(arr []int)  {
+	arr = append(arr,5)
+	sort.Ints(arr)
+	fmt.Println(arr)
+
+}
+
+func QuickSort(arr []int) []int {
+	if len(arr) <= 1 {
+		return arr
+	}
+	startNum := arr[0]
+	left := make([]int,0)
+	center := make([]int,0)
+	right := make([]int,0)
+	for _,i := range arr {
+		if i < startNum {
+			left = append(left,i)
+		}else if i > startNum {
+			right = append(right,i)
+		}else{
+			center = append(center,i)
+		}
+	}
+	left,right = QuickSort(left),QuickSort(right)
+	return append(append(left,center...),right...)
+}
+
+func forDel()  {
+	data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
+	deleteNum := 2
+	for i := 0; i < len(data); i++ {
+		if data[i] == deleteNum {
+			data = append(data[:i],data[i+1:]...)
+		}
+	}
+}
+
+func splitSort(array []int,target int) int {
+	startPos,endPos := 0,len(array)-1
+	for startPos <= endPos {
+		index := startPos + (endPos - startPos) / 2
+		if array[index] == target {
+			return index
+		}
+		if array[index] < target {
+			startPos = index + 1
+		}else if array[index] > target {
+			endPos = index - 1
+		}
+	}
+
+	return -1
 }
 func identity(z *S) *S {
 	return z
