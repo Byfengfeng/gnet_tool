@@ -1,6 +1,9 @@
 package utils
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type Bytes struct {
 	len         uint16 // byte total length
@@ -11,24 +14,31 @@ type Bytes struct {
 	dropCount	uint8  // byte drop size 10 byte len is change initByteCap
 	ringByte    []byte // byte use model
 	byteOperate	sync.RWMutex
+	writeChan   chan<- []byte // byte use model
 }
 
-func NewBytes(initByteCap uint16) *Bytes {
-	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),sync.RWMutex{}}
+func NewBytes(writeChan chan <-[]byte,initByteCap uint16) *Bytes {
+	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),
+		sync.RWMutex{},writeChan}
 }
 
-func (b *Bytes) WriteBytes(useLen uint16, putByte ...byte) {
+//todo 扩容和缩容的时候不能读写，读写的时候需要考虑是否需要拼接
+
+func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	if b.beUsable  >= useLen{
 		b.byteOperate.RLock()
 		if b.len-1 - b.writePos >= useLen {
 			copy(b.ringByte[b.writePos:],putByte)
+			atomic.AddInt32(&b.writePos,useLen)
 			b.beUsable -= useLen
+			b.writePos += useLen
 		}else{
 			oneWriteSize := b.len - b.writePos
 			//two := useLen - oneWriteSize
 			copy(b.ringByte[b.writePos:],putByte[:oneWriteSize])
 			copy(b.ringByte[0:],putByte[oneWriteSize:])
 			b.beUsable -= useLen
+			b.writePos = useLen - oneWriteSize
 		}
 		b.byteOperate.RUnlock()
 		if b.len > b.initByteCap && b.beUsable > b.initByteCap {
@@ -41,10 +51,7 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte ...byte) {
 	}else{
 		//add byte size
 		b.addByt()
-		b.byteOperate.RLock()
-		defer b.byteOperate.RUnlock()
-		copy(b.ringByte[b.writePos:],putByte)
-		b.beUsable -= useLen
+		b.WriteBytes(useLen,putByte)
 	}
 }
 
@@ -63,20 +70,25 @@ func (b *Bytes) dropByt()  {
 
 }
 
-func (b *Bytes) ReadBytes() []byte {
-	b.byteOperate.RLock()
-	b.byteOperate.RUnlock()
-	if b.len > b.beUsable {
-		if b.len - b.readPos >= 2 {
-			//byteSize := b.ringByte[b.readPos : b.readPos+2]
-			if b.len - b.readPos == 2{
+func (b *Bytes) ReadBytes() {
 
+	if b.len != b.beUsable {
+		b.byteOperate.RLock()
+
+		if b.len - b.readPos > 2 {
+
+			useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
+			if useByesSize > b.beUsable {
+				return
+			}
+			if b.len - b.readPos == 2{
+				b.writeChan <- []byte("123")
 			}
 			b.readPos+=2
-			//useByesSize := uint32(byteSize[0]) << 8 | uint32(byteSize[1])
+
+		}else{
+
 		}
-
-
+		b.byteOperate.RUnlock()
 	}
-	return []byte{}
 }

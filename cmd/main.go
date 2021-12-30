@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/Byfengfeng/gnet_tool/utils"
 	"sort"
-	"sync"
 )
 
 type S struct {
@@ -11,6 +11,16 @@ type S struct {
 }
 
 func main() {
+	wChan := make(chan []byte)
+	bytes := utils.NewBytes(wChan, 1024)
+	for i := 0; i < 6; i++ {
+		if i > 0 {
+			bytes.WriteBytes(5,[]byte("22222"))
+		}else{
+			bytes.WriteBytes(5,[]byte("11111"))
+		}
+
+	}
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
 	//listData := QuickSort(data)
 	//fmt.Println(listData)
@@ -22,27 +32,27 @@ func main() {
 	//var arr = []int{2, 3, 4, 1}
 	//change(arr)
 	//fmt.Println(arr)
-	var p map[int]int
-	if p == nil {
-		
-	}
-	p = make(map[int]int,2)
-	////l := sync.Mutex{}
-	var wg = &sync.WaitGroup{}
-
-	for i := 0; i < 2; i++ {
-		//a := i
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			p[i] = 1
-		}()
-		wg.Wait()
-	}
-
-	for i := 0; i < 2; i++ {
-		fmt.Println(p[i])
-	}
+	//var p map[int]int
+	//if p == nil {
+	//
+	//}
+	//p = make(map[int]int,2)
+	//////l := sync.Mutex{}
+	//var wg = &sync.WaitGroup{}
+	//
+	//for i := 0; i < 2; i++ {
+	//	//a := i
+	//	wg.Add(1)
+	//	go func() {
+	//		defer wg.Done()
+	//		p[i] = 1
+	//	}()
+	//	wg.Wait()
+	//}
+	//
+	//for i := 0; i < 2; i++ {
+	//	fmt.Println(p[i])
+	//}
 
 	//var x S
 	//y := &x
