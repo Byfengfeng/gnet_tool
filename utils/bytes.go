@@ -2,7 +2,6 @@ package utils
 
 import (
 	"sync"
-	"sync/atomic"
 )
 
 type Bytes struct {
@@ -29,7 +28,7 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 		b.byteOperate.RLock()
 		if b.len-1 - b.writePos >= useLen {
 			copy(b.ringByte[b.writePos:],putByte)
-			atomic.AddInt32(&b.writePos,useLen)
+
 			b.beUsable -= useLen
 			b.writePos += useLen
 		}else{
@@ -72,7 +71,7 @@ func (b *Bytes) dropByt()  {
 
 func (b *Bytes) ReadBytes() {
 
-	if b.len != b.beUsable {
+	if b.len > b.beUsable {
 		b.byteOperate.RLock()
 
 		if b.len - b.readPos > 2 {
