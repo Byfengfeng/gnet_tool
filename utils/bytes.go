@@ -28,7 +28,6 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 		b.byteOperate.RLock()
 		if b.len-1 - b.writePos >= useLen {
 			copy(b.ringByte[b.writePos:],putByte)
-
 			b.beUsable -= useLen
 			b.writePos += useLen
 		}else{
@@ -69,25 +68,56 @@ func (b *Bytes) dropByt()  {
 
 }
 
-func (b *Bytes) ReadBytes() {
+
+//read ringBuff byte data
+//one . by ringBuff len - readPosition = one read len
+//two by read len - one read len check read
+//
+//读取 环形缓冲区中的字节数据
+//1.通过缓冲区空间总长度 - 读取位置 = 正序可读长度
+//2.通过需要读取的字节长度判断正序可读长度能否支持一次读取
+//3.如果不够一次读取则进行拼接
+//
+//todo 可能存在问题当环形缓冲区长度经过扩容或缩容的时候将改变，这会影响环形缓冲区读取的判断，目前是通过读写锁来控制，写入和读取缓冲区使用的是读锁，
+//环形缓冲区扩容和缩容时使用写锁
+//当有写锁的时候不能使用读锁，读锁可以有多个
+
+func (b *Bytes) ReadBytes() ([]byte,error){
 
 	if b.len > b.beUsable {
 		b.byteOperate.RLock()
 
 		if b.len - b.readPos > 2 {
-
 			useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
 			if useByesSize > b.beUsable {
-				return
-			}
-			if b.len - b.readPos == 2{
-				b.writeChan <- []byte("123")
+				return []byte{},nil
 			}
 			b.readPos+=2
+			if b.len - b.readPos == 2{
+				if b.len-1 - b.readPos > useByesSize {
+					b.writeChan <- b.ringByte[b.readPos:b.readPos+useByesSize]
+					b.readPos += useByesSize
+				}else if b.len-1 - b.readPos == useByesSize{
+					b.writeChan <- b.ringByte[b.readPos:b.readPos+useByesSize]
+					b.readPos = 0
+				}else{
+					readSize := b.len-1 - b.readPos
+					readSize1 := useByesSize - readSize
+					b.writeChan <- append(b.ringByte[b.readPos:b.readPos+readSize],b.ringByte[0:readSize1]...)
+					b.readPos = readSize1
+				}
+				b.beUsable += useByesSize
+			}else {
+
+			}
 
 		}else{
 
 		}
 		b.byteOperate.RUnlock()
 	}
+}
+
+func (b *Bytes) CheckNeedSplice()  {
+	
 }
