@@ -83,9 +83,22 @@ func (b *Bytes) dropByt()  {
 //当有写锁的时候不能使用读锁，读锁可以有多个
 
 func (b *Bytes) ReadBytes() ([]byte,error){
+	b.byteOperate.RLock()
+	readLen := b.len-1 - b.readPos
+	if readLen > 2 {
+		useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
+		if useByesSize > b.beUsable {
+			// pain err byte len
+			return []byte{},nil
+		}
+		if readLen-2 > useByesSize {
 
+		}
+	}else {
+
+	}
 	if b.len > b.beUsable {
-		b.byteOperate.RLock()
+
 
 		if b.len - b.readPos > 2 {
 			useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
@@ -116,6 +129,7 @@ func (b *Bytes) ReadBytes() ([]byte,error){
 		}
 		b.byteOperate.RUnlock()
 	}
+	return nil, nil
 }
 
 func (b *Bytes) CheckNeedSplice()  {
