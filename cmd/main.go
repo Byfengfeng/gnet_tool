@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Byfengfeng/gnet_tool/utils"
 	"sort"
 	"time"
 )
@@ -11,38 +12,40 @@ type S struct {
 }
 
 func main() {
-	//bytes := utils.NewBytes( 1024)
-	////go bytes.ReadBytes()
-	//go func() {
-	//	for i := 0; i < 1000; i++ {
-	//		if i % 2 == 0 {
-	//			str := "22222"
-	//			lens := uint16(len(str))
-	//			bys := make([]byte,0)
-	//			bys = append(bys,byte(lens >> 8),byte(lens))
-	//			bys = append(bys,[]byte(str)...)
-	//			bytes.WriteBytes(uint16(len(bys)),bys)
-	//		}else{
-	//			str := "11111"
-	//			lens := uint16(len(str))
-	//			bys := make([]byte,0)
-	//			bys = append(bys,byte(lens >> 8),byte(lens))
-	//			bys = append(bys,[]byte(str)...)
-	//			bytes.WriteBytes(uint16(len(bys)),bys)
-	//		}
-	//
-	//	}
-	//
-	//}()
-	//
-	//go func() {
-	//	for  {
-	//		select {
-	//		case data := <-  bytes.Read():
-	//			fmt.Println(string(data))
-	//		}
-	//	}
-	//}()
+	bytes := utils.NewBytes( 1024).ReadBytes()
+	//go bytes.ReadBytes()
+	//go bytes.ReadBytes()
+	go func() {
+		for i := 0; i < 1000; i++ {
+
+			if i % 2 == 0 {
+				str := "22222"
+				lens := uint16(len(str))
+				bys := make([]byte,0)
+				bys = append(bys,byte(lens >> 8),byte(lens))
+				bys = append(bys,[]byte(str)...)
+				bytes.WriteBytes(uint16(len(bys)),bys)
+			}else{
+				str := "11111"
+				lens := uint16(len(str))
+				bys := make([]byte,0)
+				bys = append(bys,byte(lens >> 8),byte(lens))
+				bys = append(bys,[]byte(str)...)
+				bytes.WriteBytes(uint16(len(bys)),bys)
+			}
+
+		}
+
+	}()
+
+	go func() {
+		for  {
+			select {
+			case data := <-  bytes.Read():
+				fmt.Println(string(data))
+			}
+		}
+	}()
 
 	time.Sleep(1 * time.Minute)
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}

@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Bytes struct {
@@ -15,11 +17,12 @@ type Bytes struct {
 	ringByte    []byte // byte use model
 	byteOperate	sync.RWMutex
 	writeChan   chan[]byte // byte use model
+	writeLen int64
 }
 
 func NewBytes(initByteCap uint16) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),
-		sync.RWMutex{},make(chan []byte,0),}
+		sync.RWMutex{},make(chan []byte,0),0}
 }
 
 //todo 扩容和缩容的时候不能读写，读写的时候需要考虑是否需要拼接
@@ -51,23 +54,18 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 		//add byte size
 		b.addByt()
 		b.WriteBytes(useLen,putByte)
-		return
 	}
-	b.ReadBytes()
+	atomic.AddInt64(&b.writeLen,1)
 }
 
 func (b *Bytes) addByt()  {
 	b.byteOperate.Lock()
-	//a := uint16(10)
-	//b.len += a
-	//b.beUsable += a
-	//b.ringByte = append(append(b.ringByte[:b.writePos],make([]byte,a)...),b.ringByte[b.writePos:]...)
-
 	b.len += b.initByteCap
 	b.beUsable += b.initByteCap
 	b.ringByte = append(append(b.ringByte[:b.writePos],make([]byte,b.initByteCap)...),b.ringByte[b.writePos:]...)
 	fmt.Println("扩容长度",b.len)
 	b.byteOperate.Unlock()
+	time.Sleep(1 * time.Nanosecond)
 }
 
 func (b *Bytes) dropByt()  {
@@ -96,18 +94,26 @@ func (b *Bytes) dropByt()  {
 //环形缓冲区扩容和缩容时使用写锁
 //当有写锁的时候不能使用读锁，读锁可以有多个
 
-func (b *Bytes) ReadBytes() {
-		dateLength := b.ReadN(2)
-		useByesSize := uint16(dateLength[0]) << 8 | uint16(dateLength[1])
-		if useByesSize > b.len {
-			// pain err byte len
-			panic("解析字节包长度异常")
-			return
+func (b *Bytes) ReadBytes() *Bytes {
+	go func() {
+		for  {
+			if b.writeLen > 0 {
+				dateLength := b.ReadN(2)
+				useByesSize := uint16(dateLength[0]) << 8 | uint16(dateLength[1])
+				if useByesSize > b.len {
+					// pain err byte len
+					panic("解析字节包长度异常")
+					return
+				}
+				data := b.ReadN(useByesSize)
+				if len(data) > 0 {
+					b.writeChan <- data
+				}
+				atomic.AddInt64(&b.writeLen,-1)
+			}
 		}
-		data := b.ReadN(useByesSize)
-		if len(data) > 0 {
-			b.writeChan <- data
-		}
+	}()
+	return b
 }
 
 func (b *Bytes) Read() chan[]byte {
@@ -138,8 +144,4 @@ func (b *Bytes) ReadN(byteLen uint16) []byte {
 		b.readPos = b.readPos+byteLen
 		return bytes
 	}
-}
-
-func (b *Bytes) CheckNeedSplice()  {
-	
 }
