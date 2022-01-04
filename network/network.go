@@ -33,7 +33,7 @@ func NewNetWork(c *net.TCPConn) {
 		false,
 		sync.RWMutex{},
 		code_tool.NewIRequestCtx(0, address),
-		utils.NewBytes(1024),
+		utils.NewBytes(1024).ReadBytes(),
 	}
 	code_tool.NewChannel(t)
 	t.Start()
