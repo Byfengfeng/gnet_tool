@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -13,12 +14,12 @@ type Bytes struct {
 	dropCount	uint8  // byte drop size 10 byte len is change initByteCap
 	ringByte    []byte // byte use model
 	byteOperate	sync.RWMutex
-	writeChan   chan<- []byte // byte use model
+	writeChan   chan[]byte // byte use model
 }
 
-func NewBytes(writeChan chan <-[]byte,initByteCap uint16) *Bytes {
+func NewBytes(initByteCap uint16) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),
-		sync.RWMutex{},writeChan}
+		sync.RWMutex{},make(chan []byte,0),}
 }
 
 //todo 扩容和缩容的时候不能读写，读写的时候需要考虑是否需要拼接
@@ -50,20 +51,33 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 		//add byte size
 		b.addByt()
 		b.WriteBytes(useLen,putByte)
+		return
 	}
+	b.ReadBytes()
 }
 
 func (b *Bytes) addByt()  {
 	b.byteOperate.Lock()
+	//a := uint16(10)
+	//b.len += a
+	//b.beUsable += a
+	//b.ringByte = append(append(b.ringByte[:b.writePos],make([]byte,a)...),b.ringByte[b.writePos:]...)
+
 	b.len += b.initByteCap
 	b.beUsable += b.initByteCap
-	b.readPos += b.initByteCap
 	b.ringByte = append(append(b.ringByte[:b.writePos],make([]byte,b.initByteCap)...),b.ringByte[b.writePos:]...)
+	fmt.Println("扩容长度",b.len)
 	b.byteOperate.Unlock()
 }
 
 func (b *Bytes) dropByt()  {
 	b.byteOperate.Lock()
+	wL := b.len-1 - b.writePos
+	if wL > b.initByteCap {
+		b.ringByte = append(b.ringByte[0:b.writePos],b.ringByte[b.writePos+b.initByteCap:]...)
+	}
+	b.len-=b.initByteCap
+	fmt.Println("縮容长度",b.len)
 	b.byteOperate.Unlock()
 
 }
@@ -82,54 +96,48 @@ func (b *Bytes) dropByt()  {
 //环形缓冲区扩容和缩容时使用写锁
 //当有写锁的时候不能使用读锁，读锁可以有多个
 
-func (b *Bytes) ReadBytes() ([]byte,error){
-	b.byteOperate.RLock()
-	readLen := b.len-1 - b.readPos
-	if readLen > 2 {
-		useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
-		if useByesSize > b.beUsable {
+func (b *Bytes) ReadBytes() {
+		dateLength := b.ReadN(2)
+		useByesSize := uint16(dateLength[0]) << 8 | uint16(dateLength[1])
+		if useByesSize > b.len {
 			// pain err byte len
-			return []byte{},nil
+			panic("解析字节包长度异常")
+			return
 		}
-		if readLen-2 > useByesSize {
-
+		data := b.ReadN(useByesSize)
+		if len(data) > 0 {
+			b.writeChan <- data
 		}
-	}else {
+}
 
+func (b *Bytes) Read() chan[]byte {
+	return b.writeChan
+}
+
+func (b *Bytes) ReadN(byteLen uint16) []byte {
+	b.byteOperate.RLock()
+	defer b.byteOperate.RUnlock()
+	readLen := b.len-1 - b.readPos
+	if readLen > byteLen {
+		bytes := b.ringByte[b.readPos : b.readPos+byteLen]
+		b.readPos += byteLen
+		b.beUsable += byteLen
+		return bytes
+	} else if readLen < byteLen {
+		readSize1 := byteLen-(readLen+1)
+		bytes := append(b.ringByte[b.readPos:])
+		if readSize1 > 0 {
+			bytes = append(bytes,b.ringByte[0:readSize1]...)
+		}
+		b.beUsable += byteLen
+		b.readPos = readSize1
+		return  bytes
+	} else {
+		bytes := b.ringByte[b.readPos:b.readPos+byteLen]
+		b.beUsable += byteLen
+		b.readPos = b.readPos+byteLen
+		return bytes
 	}
-	if b.len > b.beUsable {
-
-
-		if b.len - b.readPos > 2 {
-			useByesSize := uint16(b.ringByte[b.readPos]) << 8 | uint16(b.ringByte[b.readPos+1])
-			if useByesSize > b.beUsable {
-				return []byte{},nil
-			}
-			b.readPos+=2
-			if b.len - b.readPos == 2{
-				if b.len-1 - b.readPos > useByesSize {
-					b.writeChan <- b.ringByte[b.readPos:b.readPos+useByesSize]
-					b.readPos += useByesSize
-				}else if b.len-1 - b.readPos == useByesSize{
-					b.writeChan <- b.ringByte[b.readPos:b.readPos+useByesSize]
-					b.readPos = 0
-				}else{
-					readSize := b.len-1 - b.readPos
-					readSize1 := useByesSize - readSize
-					b.writeChan <- append(b.ringByte[b.readPos:b.readPos+readSize],b.ringByte[0:readSize1]...)
-					b.readPos = readSize1
-				}
-				b.beUsable += useByesSize
-			}else {
-
-			}
-
-		}else{
-
-		}
-		b.byteOperate.RUnlock()
-	}
-	return nil, nil
 }
 
 func (b *Bytes) CheckNeedSplice()  {
