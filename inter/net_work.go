@@ -2,7 +2,7 @@ package inter
 
 type INetwork interface {
 	Start()
-	GetClose() bool
+	Action(action func())
 	SetIsClose()
 	WriteReadChan(data []byte)
 	GetCtx() interface{}

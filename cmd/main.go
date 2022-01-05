@@ -14,7 +14,6 @@ type S struct {
 func main() {
 	bytes := utils.NewBytes( 1024).ReadBytes()
 	//go bytes.ReadBytes()
-	//go bytes.ReadBytes()
 	go func() {
 		for i := 0; i < 1000; i++ {
 

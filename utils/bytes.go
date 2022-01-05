@@ -18,16 +18,20 @@ type Bytes struct {
 	byteOperate	sync.RWMutex
 	writeChan   chan[]byte // byte use model
 	writeLen int64
+	checkClose bool
 }
 
 func NewBytes(initByteCap uint16) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),
-		sync.RWMutex{},make(chan []byte,0),0}
+		sync.RWMutex{},make(chan []byte,0),0,false}
 }
 
 //todo 扩容和缩容的时候不能读写，读写的时候需要考虑是否需要拼接
 
 func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
+	if b.checkClose {
+		return
+	}
 	if b.beUsable  >= useLen{
 		b.byteOperate.RLock()
 		if b.len-1 - b.writePos >= useLen {
@@ -94,9 +98,19 @@ func (b *Bytes) dropByt()  {
 //环形缓冲区扩容和缩容时使用写锁
 //当有写锁的时候不能使用读锁，读锁可以有多个
 
+func (b *Bytes) Close()  {
+	b.checkClose = true
+}
+
 func (b *Bytes) ReadBytes() *Bytes {
 	go func() {
 		for  {
+			if b.checkClose {
+				b.byteOperate.Lock()
+				close(b.writeChan)
+				b.byteOperate.RUnlock()
+				return
+			}
 			if b.writeLen > 0 {
 				dateLength := b.ReadN(2)
 				useByesSize := uint16(dateLength[0]) << 8 | uint16(dateLength[1])

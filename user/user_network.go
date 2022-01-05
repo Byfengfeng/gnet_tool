@@ -22,10 +22,10 @@ func NewUserMapperService() inter.IUserMapper {
 
 func (u *userMapperService) Response(address string,data []byte)  {
 	iNetwork := u.GetUserByAddr(address)
-	if iNetwork != nil && !iNetwork.GetClose(){
-		if !iNetwork.GetClose() {
+	if iNetwork != nil{
+		iNetwork.Action(func() {
 			iNetwork.WriteWriteChan(data)
-		}
+		})
 	}
 }
 

@@ -57,6 +57,10 @@ func (n *NetWork) readBuff()  {
 }
 func (n *NetWork) read() {
 	for {
+		if !n.IsClose {
+			log.Logger.Info("read off")
+			return
+		}
 		reqBytes := <-n.ringByte.Read()
 		if len(reqBytes) == 0 {
 			log.Logger.Info("read off")
@@ -64,13 +68,17 @@ func (n *NetWork) read() {
 		} else {
 			//读取数据
 			code, data := utils.Decode(reqBytes)
-			code_tool.Request(n.Ctx.Addr, n, code, data)
+			go code_tool.Request(n.Ctx.Addr, n, code, data)
 		}
 	}
 }
 
 func (n *NetWork) write() {
 	for {
+		if !n.IsClose {
+			log.Logger.Info("write off")
+			return
+		}
 		data := <-n.WriteChan
 		if len(data) > 0 {
 			_, err := n.Write(data)
@@ -109,6 +117,7 @@ func (n *NetWork) SetIsClose() {
 	if n.IsClose {
 		n.IsClose = false
 		n.TCPConn.Close()
+		n.ringByte.Close()
 		close(n.ReadChan)
 		close(n.WriteChan)
 		log.Logger.Info("close network")
@@ -128,10 +137,12 @@ func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
 	return GetNetWork(address)
 }
 
-func (n *NetWork) GetClose() bool {
-	n.CloseLock.Lock()
-	defer n.CloseLock.Unlock()
-	return n.IsClose
+func (n *NetWork) Action(action func()) {
+	n.CloseLock.RLock()
+	if n.IsClose {
+		action()
+	}
+	n.CloseLock.RUnlock()
 }
 
 func (n *NetWork) GetAddr() string {
