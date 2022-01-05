@@ -10,7 +10,7 @@ require (
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.5 // indirect
 	github.com/panjf2000/ants/v2 v2.4.7
-	github.com/panjf2000/gnet v1.6.3 // indirect
+	github.com/panjf2000/gnet v1.6.3
 	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 )
