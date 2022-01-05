@@ -62,11 +62,8 @@ func (t *netServer) OnShutdown(svr gnet.Server) {
 
 func (t *netServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	netWork := network.GetNetWork(c.RemoteAddr().String())
-	if netWork != nil {
-		netWork.Action(func() {
-			netWork.CloseCid()
-		})
-
+	if netWork != nil && !netWork.GetClose() {
+		netWork.CloseCid()
 	}
 
 	return gnet.Close
