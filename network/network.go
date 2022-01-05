@@ -45,10 +45,12 @@ func (n *NetWork) readBuff()  {
 		readLen, err := n.TCPConn.Read(newBytes)
 		if err != nil {
 			log.Logger.Info(err.Error())
+			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 			return
 		}
 		if readLen == 0 {
 			log.Logger.Info("read off")
+			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 			return
 		} else {
 			n.ringByte.WriteBytes(uint16(readLen),newBytes[0:readLen-1])
