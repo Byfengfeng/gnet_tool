@@ -22,12 +22,12 @@ func TcpReact(frame []byte, c gnet.Conn)  {
 
 func TcpCodeDe(frame []byte,network inter.INetwork) {
 	data, remainingByte := utils.DecodeRound(frame)
-	if !network.GetClose() {
+	network.Action(func() {
 		network.WriteReadChan(data)
 		if len(remainingByte) > 0 {
 			TcpCodeDe(remainingByte,network)
 		}
-	}
+	})
 }
 
 

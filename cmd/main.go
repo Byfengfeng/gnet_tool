@@ -8,7 +8,7 @@ import (
 
 func main() {
 	//go freeOs()
-	tcpServer := net.NewTcpServer("tcp6","", 9000, true)
+	tcpServer := net.NewTcpServer("tcp6","192.168.31.134", 9000, true)
 	go func() {
 		err := tcpServer.Start()
 		if err != nil {

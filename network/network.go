@@ -16,7 +16,7 @@ type NetWork struct {
 	ReadChan chan []byte
 	WriteChan chan []byte
 	IsClose bool
-	CloseLock sync.Mutex
+	CloseLock sync.RWMutex
 	Ctx *code_tool.IRequestCtx
 	netV string
 }
@@ -30,8 +30,8 @@ func NewNetWork(c gnet.Conn,netV string) inter.INetwork {
 	t := &NetWork{c,
 		make(chan[]byte),
 		make(chan[]byte),
-		false,
-		sync.Mutex{},
+		true,
+		sync.RWMutex{},
 		code_tool.NewIRequestCtx(0,address),
 		netV,
 	}
@@ -95,11 +95,11 @@ func (n *NetWork) WriteWriteChan(data []byte)  {
 
 func (n *NetWork) SetIsClose()  {
 	n.CloseLock.Lock()
-	defer n.CloseLock.Unlock()
-	n.IsClose = true
+	n.IsClose = false
 	n.Conn.Close()
 	close(n.ReadChan)
 	close(n.WriteChan)
+	n.CloseLock.Unlock()
 	log.Logger.Info("close network")
 	atomic.AddUint32(&count,1)
 }
@@ -116,11 +116,14 @@ func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
 	return GetNetWork(address)
 }
 
-func (n *NetWork) GetClose() bool {
-	n.CloseLock.Lock()
-	defer n.CloseLock.Unlock()
-	return n.IsClose
+func (n *NetWork) Action(fn func()) {
+	n.CloseLock.RLock()
+	if n.IsClose {
+		fn()
+	}
+	n.CloseLock.RUnlock()
 }
+
 
 func (n *NetWork) GetAddr() string {
 	return n.RemoteAddr().String()
