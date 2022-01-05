@@ -1,23 +1,14 @@
 package tcp
 
 import (
-	"github.com/Byfengfeng/gnet_tool/inter"
-	"github.com/Byfengfeng/gnet_tool/network"
-	"github.com/Byfengfeng/gnet_tool/utils"
-	"github.com/panjf2000/gnet"
+	"fmt"
+	"net"
 )
 
-func TcpReact(frame []byte, c gnet.Conn)  {
-	if len(frame) > 0 {
-		copyByte := make([]byte,len(frame))
-		copy(copyByte,frame)
-		if len(copyByte) > 0 {
-			netWork := network.GetNetWork(c.RemoteAddr().String())
-			if netWork!= nil {
-				TcpCodeDe(copyByte,netWork)
-			}
-		}
-	}
+type netListen struct {
+	address string
+	*net.TCPListener
+	channelHandel func(conn *net.TCPConn)
 }
 
 func TcpCodeDe(frame []byte,network inter.INetwork) {
@@ -29,7 +20,3 @@ func TcpCodeDe(frame []byte,network inter.INetwork) {
 		}
 	})
 }
-
-
-
-
