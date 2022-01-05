@@ -12,7 +12,7 @@ type S struct {
 }
 
 func main() {
-	bytes := utils.NewBytes( 1024).ReadBytes()
+	bytes := utils.NewBytes( 1024,nil).ReadBytes()
 	//go bytes.ReadBytes()
 	go func() {
 		for i := 0; i < 1000; i++ {

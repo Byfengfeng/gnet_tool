@@ -27,14 +27,14 @@ var (
 
 func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
-	t := &NetWork{c,
-		make(chan []byte),
-		make(chan []byte),
-		false,
-		sync.RWMutex{},
-		code_tool.NewIRequestCtx(0, address),
-		utils.NewBytes(1024).ReadBytes(),
+	t := &NetWork{TCPConn:c,
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
+	t.ringByte = utils.NewBytes(1024,t.ReadChan).ReadBytes()
 	code_tool.NewChannel(t)
 	t.Start()
 }
@@ -46,10 +46,11 @@ func (n *NetWork) readBuff()  {
 		if err != nil {
 			log.Logger.Info(err.Error())
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
+			log.Logger.Info("readBuff off")
 			return
 		}
 		if readLen == 0 {
-			log.Logger.Info("read off")
+			log.Logger.Info("readBuff off")
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 			return
 		} else {
@@ -63,7 +64,7 @@ func (n *NetWork) read() {
 			log.Logger.Info("read off")
 			return
 		}
-		reqBytes := <-n.ringByte.Read()
+		reqBytes := <- n.ReadChan
 		if len(reqBytes) == 0 {
 			log.Logger.Info("read off")
 			return

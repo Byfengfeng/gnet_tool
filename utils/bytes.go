@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"github.com/Byfengfeng/gnet_tool/log"
 	"time"
 )
 
@@ -21,12 +22,10 @@ type Bytes struct {
 	checkClose bool
 }
 
-func NewBytes(initByteCap uint16) *Bytes {
+func NewBytes(initByteCap uint16,readChan chan[]byte) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0,make([]byte, initByteCap),
-		sync.RWMutex{},make(chan []byte,0),0,false}
+		sync.RWMutex{},readChan,0,false}
 }
-
-//todo 扩容和缩容的时候不能读写，读写的时候需要考虑是否需要拼接
 
 func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	if b.checkClose {
@@ -80,6 +79,7 @@ func (b *Bytes) dropByt()  {
 	}
 	b.len-=b.initByteCap
 	fmt.Println("縮容长度",b.len)
+	b.dropCount = 0
 	b.byteOperate.Unlock()
 
 }
@@ -88,27 +88,20 @@ func (b *Bytes) dropByt()  {
 //read ringBuff byte data
 //one . by ringBuff len - readPosition = one read len
 //two by read len - one read len check read
-//
-//读取 环形缓冲区中的字节数据
-//1.通过缓冲区空间总长度 - 读取位置 = 正序可读长度
-//2.通过需要读取的字节长度判断正序可读长度能否支持一次读取
-//3.如果不够一次读取则进行拼接
-//
-//todo 可能存在问题当环形缓冲区长度经过扩容或缩容的时候将改变，这会影响环形缓冲区读取的判断，目前是通过读写锁来控制，写入和读取缓冲区使用的是读锁，
-//环形缓冲区扩容和缩容时使用写锁
-//当有写锁的时候不能使用读锁，读锁可以有多个
 
 func (b *Bytes) Close()  {
-	b.checkClose = true
+	b.byteOperate.Lock()
+	if !b.checkClose {
+		b.checkClose = true
+	}
+	b.byteOperate.Unlock()
 }
 
 func (b *Bytes) ReadBytes() *Bytes {
 	go func() {
 		for  {
 			if b.checkClose {
-				b.byteOperate.Lock()
-				close(b.writeChan)
-				b.byteOperate.RUnlock()
+				log.Logger.Info("ReadBytes off")
 				return
 			}
 			if b.writeLen > 0 {
@@ -131,6 +124,8 @@ func (b *Bytes) ReadBytes() *Bytes {
 }
 
 func (b *Bytes) Read() chan[]byte {
+	b.byteOperate.RLock()
+	defer b.byteOperate.RUnlock()
 	return b.writeChan
 }
 
