@@ -1,7 +1,9 @@
 package tcp
 
 import (
-	"fmt"
+	"github.com/Byfengfeng/gnet_tool/log"
+	"github.com/Byfengfeng/gnet_tool/network"
+	"go.uber.org/zap"
 	"net"
 )
 
@@ -11,8 +13,8 @@ type netListen struct {
 	channelHandel func(conn *net.TCPConn)
 }
 
-func NewNetListen(addr string,channelHandel func(con *net.TCPConn)) *netListen {
-	return &netListen{address: addr,channelHandel: channelHandel}
+func NewNetListen(addr string) *netListen {
+	return &netListen{address: addr,channelHandel: network.NewNetWork}
 }
 
 func (n * netListen) Start() error {
@@ -27,17 +29,17 @@ func (n * netListen) Start() error {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				fmt.Println("listener", fmt.Errorf("%s", err))
+				log.Logger.Error("listener err",zap.Any("err",err))
 			}
 		}()
 		for {
 			tcpConn, err := n.TCPListener.AcceptTCP()
 			if err != nil {
-				fmt.Println("client channel exit", fmt.Errorf("%s", err))
+				log.Logger.Error("client channel exit",zap.Any("err",err))
 			}
 			n.channelHandel(tcpConn)
 		}
 	}()
-	fmt.Println("tcp listen start success")
+	log.Logger.Info("tcp listen start success")
 	return nil
 }

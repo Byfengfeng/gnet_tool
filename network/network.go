@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"net"
 	"sync"
-	"sync/atomic"
 )
 
 type NetWork struct {
@@ -20,10 +19,6 @@ type NetWork struct {
 	Ctx       *code_tool.IRequestCtx
 	ringByte  *utils.Bytes
 }
-
-var (
-	count uint32
-)
 
 func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
@@ -124,7 +119,6 @@ func (n *NetWork) SetIsClose() {
 		close(n.ReadChan)
 		close(n.WriteChan)
 		log.Logger.Info("close network")
-		atomic.AddUint32(&count, 1)
 	}
 }
 
@@ -158,12 +152,4 @@ func (n *NetWork) SetCid(cid int64) {
 
 func (n *NetWork) SetUid(uid int64) {
 	n.Ctx.Uid = uid
-}
-
-func GetCloseCount() uint32 {
-	return count
-}
-
-func SetCount() {
-	count = 0
 }
