@@ -12,7 +12,6 @@ import (
 
 type NetWork struct {
 	*net.TCPConn
-	ReadChan  chan []byte
 	WriteChan chan []byte
 	IsClose   bool
 	CloseLock sync.RWMutex
@@ -23,13 +22,12 @@ type NetWork struct {
 func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
 	t := &NetWork{TCPConn:c,
-		ReadChan: make(chan []byte),
 		WriteChan: make(chan []byte),
 		IsClose: true,
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
-	t.ringByte = utils.NewBytes(1024,t.ReadChan, func(bytes []byte) {
+	t.ringByte = utils.NewBytes(1024,func(bytes []byte) {
 		code, data := utils.Decode(bytes)
 		code_tool.Request(t.Ctx.Addr, t, code, data)
 	})
@@ -56,23 +54,6 @@ func (n *NetWork) readBuff()  {
 		}
 	}
 }
-func (n *NetWork) read() {
-	for {
-		if !n.IsClose {
-			log.Logger.Info("read off")
-			return
-		}
-		reqBytes := <- n.ReadChan
-		if len(reqBytes) == 0 {
-			log.Logger.Info("read off")
-			return
-		} else {
-			//读取数据
-			code, data := utils.Decode(reqBytes)
-			code_tool.Request(n.Ctx.Addr, n, code, data)
-		}
-	}
-}
 
 func (n *NetWork) write() {
 	for {
@@ -96,16 +77,11 @@ func (n *NetWork) write() {
 
 func (n *NetWork) Start() {
 	go n.readBuff()
-	go n.read()
 	go n.write()
 }
 
 func (n *NetWork) GetCtx() interface{} {
 	return n.Ctx
-}
-
-func (n *NetWork) WriteReadChan(data []byte) {
-	n.ReadChan <- data
 }
 
 func (n *NetWork) WriteWriteChan(data []byte) {
@@ -119,7 +95,6 @@ func (n *NetWork) SetIsClose() {
 		n.IsClose = false
 		n.TCPConn.Close()
 		n.ringByte.Close()
-		close(n.ReadChan)
 		close(n.WriteChan)
 		log.Logger.Info("close network")
 	}

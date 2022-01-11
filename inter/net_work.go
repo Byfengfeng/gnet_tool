@@ -4,7 +4,6 @@ type INetwork interface {
 	Start()
 	Action(action func())
 	SetIsClose()
-	WriteReadChan(data []byte)
 	GetCtx() interface{}
 	WriteWriteChan(data []byte)
 	GetAddr() string

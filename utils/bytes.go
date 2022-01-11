@@ -20,44 +20,46 @@ type Bytes struct {
 	writeLen    int64
 	checkClose  bool
 	messageFn   func(bytes []byte)
+	readL sync.Mutex
 }
 
 func NewBytes(initByteCap uint16, fn func(bytes []byte)) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap, 0, make([]byte, initByteCap),
-		sync.RWMutex{}, 0, false, fn}
+		sync.RWMutex{}, 0, false, fn,sync.Mutex{}}
 }
 
 func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	if b.checkClose {
 		return
 	}
-	if b.beUsable >= useLen {
-		b.byteOperate.RLock()
-		if b.len-1-b.writePos >= useLen {
-			copy(b.ringByte[b.writePos:], putByte)
-			b.beUsable -= useLen
-			b.writePos += useLen
-		} else {
-			oneWriteSize := b.len - b.writePos
-			//two := useLen - oneWriteSize
-			copy(b.ringByte[b.writePos:], putByte[:oneWriteSize])
-			copy(b.ringByte[0:], putByte[oneWriteSize:])
-			b.beUsable -= useLen
-			b.writePos = useLen - oneWriteSize
-		}
-		b.byteOperate.RUnlock()
-		if b.len > b.initByteCap && b.beUsable > b.initByteCap {
-			b.dropCount++
-			if b.dropCount >= 10 {
-				// drop byte size
-				b.dropByt()
-			}
-		}
-	} else {
-		//add byte size
-		b.addByt()
-		b.WriteBytes(useLen, putByte)
-	}
+	b.writeN(useLen,putByte)
+	//if b.beUsable >= useLen {
+	//	b.byteOperate.RLock()
+	//	if b.len-1-b.writePos >= useLen {
+	//		copy(b.ringByte[b.writePos:], putByte)
+	//		b.beUsable -= useLen
+	//		b.writePos += useLen
+	//	} else {
+	//		oneWriteSize := b.len - b.writePos
+	//		//two := useLen - oneWriteSize
+	//		copy(b.ringByte[b.writePos:], putByte[:oneWriteSize])
+	//		copy(b.ringByte[0:], putByte[oneWriteSize:])
+	//		b.beUsable -= useLen
+	//		b.writePos = useLen - oneWriteSize
+	//	}
+	//	b.byteOperate.RUnlock()
+	//	if b.len > b.initByteCap && b.beUsable > b.initByteCap {
+	//		b.dropCount++
+	//		if b.dropCount >= 10 {
+	//			// drop byte size
+	//			b.dropByt()
+	//		}
+	//	}
+	//} else {
+	//	//add byte size
+	//	b.addByt()
+	//	b.WriteBytes(useLen, putByte)
+	//}
 	atomic.AddInt64(&b.writeLen, 1)
 	go b.ReadBytes()
 }
@@ -103,23 +105,25 @@ func (b *Bytes) ReadBytes() {
 		return
 	}
 	if b.writeLen > 0 {
-		dateLength := b.ReadN(2)
+		b.readL.Lock()
+		dateLength := b.readN(2)
 		useByesSize := uint16(dateLength[0])<<8 | uint16(dateLength[1])
 		if useByesSize > b.len {
 			// pain err byte len
 			panic("解析字节包长度异常")
 			return
 		}
-		data := b.ReadN(useByesSize)
+		data := b.readN(useByesSize)
+		atomic.AddInt64(&b.writeLen, -1)
+		b.readL.Unlock()
 		if len(data) > 0 {
 			go b.messageFn(data)
 		}
-		atomic.AddInt64(&b.writeLen, -1)
 	}
 
 }
 
-func (b *Bytes) ReadN(byteLen uint16) []byte {
+func (b *Bytes) readN(byteLen uint16) []byte {
 	b.byteOperate.RLock()
 	defer b.byteOperate.RUnlock()
 	readLen := b.len - 1 - b.readPos
@@ -143,4 +147,47 @@ func (b *Bytes) ReadN(byteLen uint16) []byte {
 		b.readPos = b.readPos + byteLen
 		return bytes
 	}
+}
+
+func (b *Bytes) writeN(writeLen uint16,bytes []byte)  {
+	indexOutOfBounds := b.CheckIndexOutOfBounds(writeLen)
+	if b.beUsable > writeLen {
+		b.byteOperate.RLock()
+		if indexOutOfBounds {
+			w1 := b.beUsable - b.writePos
+			copy(b.ringByte[b.writePos:],bytes[:w1+1])
+			copy(b.ringByte[0:],bytes[w1:])
+			b.writePos = writeLen - w1 -1
+			b.beUsable -= writeLen
+		}else {
+			copy(b.ringByte[b.writePos:], bytes)
+			b.beUsable -= writeLen
+			b.writePos += writeLen
+		}
+		b.byteOperate.RUnlock()
+	}else if b.beUsable < writeLen {
+		b.addByt()
+		b.writeN(writeLen,bytes)
+	} else {
+		b.byteOperate.RLock()
+		if indexOutOfBounds {
+			w1 := b.beUsable - b.writePos
+			copy(b.ringByte[b.writePos:],bytes[:w1+1])
+			copy(b.ringByte[0:],bytes[w1:])
+			b.writePos = writeLen - w1 -1
+			b.beUsable -= writeLen
+		}else {
+			copy(b.ringByte[b.writePos:], bytes)
+			b.beUsable -= writeLen
+			b.writePos = 0
+		}
+		b.byteOperate.RUnlock()
+	}
+}
+func (b *Bytes) CheckIndexOutOfBounds(len uint16) bool {
+	useWriteLen := b.len-1 - b.writePos
+	if useWriteLen >= len {
+		return false
+	}
+	return true
 }
