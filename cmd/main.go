@@ -12,7 +12,9 @@ type S struct {
 }
 
 func main() {
-	bytes := utils.NewBytes( 1024,nil).ReadBytes()
+	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
+	bytes := utils.NewBytes( 1024,nil)
+	bytes.ReadBytes()
 	//go bytes.ReadBytes()
 	go func() {
 		for i := 0; i < 1000; i++ {
@@ -37,14 +39,6 @@ func main() {
 
 	}()
 
-	go func() {
-		for  {
-			select {
-			case data := <-  bytes.Read():
-				fmt.Println(string(data))
-			}
-		}
-	}()
 
 	time.Sleep(1 * time.Minute)
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
@@ -141,19 +135,18 @@ func forDel()  {
 }
 
 func splitSort(array []int,target int) int {
-	startPos,endPos := 0,len(array)-1
-	for startPos <= endPos {
-		index := startPos + (endPos - startPos) / 2
+	start,end := 0,len(array)-1
+	for start <= end {
+		index := start + (end - start) / 2
 		if array[index] == target {
 			return index
 		}
-		if array[index] < target {
-			startPos = index + 1
-		}else if array[index] > target {
-			endPos = index - 1
+		if array[index] > target {
+			end = index - 1
+		}else{
+			start = index + 1
 		}
 	}
-
 	return -1
 }
 func identity(z *S) *S {

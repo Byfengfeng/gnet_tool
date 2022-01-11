@@ -29,7 +29,10 @@ func NewNetWork(c *net.TCPConn) {
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
-	t.ringByte = utils.NewBytes(1024,t.ReadChan).ReadBytes()
+	t.ringByte = utils.NewBytes(1024,t.ReadChan, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		code_tool.Request(t.Ctx.Addr, t, code, data)
+	})
 	code_tool.NewChannel(t)
 	t.Start()
 }
@@ -66,7 +69,7 @@ func (n *NetWork) read() {
 		} else {
 			//读取数据
 			code, data := utils.Decode(reqBytes)
-			go code_tool.Request(n.Ctx.Addr, n, code, data)
+			code_tool.Request(n.Ctx.Addr, n, code, data)
 		}
 	}
 }
