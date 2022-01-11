@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Byfengfeng/gnet_tool/net/tcp"
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"sort"
 	"time"
@@ -12,13 +13,16 @@ type S struct {
 }
 
 func main() {
+	listen := tcp.NewNetListen("192.168.31.134:9000")
+	listen.Start()
 	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
-	bytes := utils.NewBytes( 1024,nil)
-	bytes.ReadBytes()
+	bytes := utils.NewBytes( 1024, func(bytes []byte) {
+		decode, data := utils.Decode(bytes)
+		fmt.Println("decode:",decode,"data:",data)
+	})
 	//go bytes.ReadBytes()
 	go func() {
 		for i := 0; i < 1000; i++ {
-
 			if i % 2 == 0 {
 				str := "22222"
 				lens := uint16(len(str))

@@ -156,7 +156,7 @@ func (b *Bytes) writeN(writeLen uint16,bytes []byte)  {
 		if indexOutOfBounds {
 			w1 := b.beUsable - b.writePos
 			copy(b.ringByte[b.writePos:],bytes[:w1+1])
-			copy(b.ringByte[0:],bytes[w1:])
+			copy(b.ringByte[0:],bytes[w1+1:])
 			b.writePos = writeLen - w1 -1
 			b.beUsable -= writeLen
 		}else {
@@ -173,7 +173,7 @@ func (b *Bytes) writeN(writeLen uint16,bytes []byte)  {
 		if indexOutOfBounds {
 			w1 := b.beUsable - b.writePos
 			copy(b.ringByte[b.writePos:],bytes[:w1+1])
-			copy(b.ringByte[0:],bytes[w1:])
+			copy(b.ringByte[0:],bytes[w1+1:])
 			b.writePos = writeLen - w1 -1
 			b.beUsable -= writeLen
 		}else {
