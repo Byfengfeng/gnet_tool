@@ -61,7 +61,7 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	//	b.WriteBytes(useLen, putByte)
 	//}
 	atomic.AddInt64(&b.writeLen, 1)
-	go b.ReadBytes()
+	//go b.ReadBytes()
 }
 
 func (b *Bytes) addByt() {

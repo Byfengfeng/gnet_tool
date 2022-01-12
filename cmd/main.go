@@ -16,7 +16,7 @@ func main() {
 	listen := tcp.NewNetListen("192.168.31.134:9000")
 	listen.Start()
 	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
-	bytes := utils.NewBytes( 1024, func(bytes []byte) {
+	bytes := utils.NewBytes( 7, func(bytes []byte) {
 		decode, data := utils.Decode(bytes)
 		fmt.Println("decode:",decode,"data:",data)
 	})
@@ -24,7 +24,7 @@ func main() {
 	go func() {
 		for i := 0; i < 1000; i++ {
 			if i % 2 == 0 {
-				str := "22222"
+				str := "00000"
 				lens := uint16(len(str))
 				bys := make([]byte,0)
 				bys = append(bys,byte(lens >> 8),byte(lens))
