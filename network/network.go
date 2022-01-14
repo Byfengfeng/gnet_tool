@@ -16,7 +16,6 @@ type NetWork struct {
 	IsClose   bool
 	CloseLock sync.RWMutex
 	Ctx       *code_tool.IRequestCtx
-	ringByte  *utils.Bytes
 }
 
 func NewNetWork(c *net.TCPConn) {
@@ -27,10 +26,6 @@ func NewNetWork(c *net.TCPConn) {
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
-	t.ringByte = utils.NewBytes(1024,func(bytes []byte) {
-		code, data := utils.Decode(bytes)
-		code_tool.Request(t.Ctx.Addr, t, code, data)
-	})
 	code_tool.NewChannel(t)
 	t.Start()
 }
@@ -112,7 +107,6 @@ func (n *NetWork) SetIsClose() {
 	if n.IsClose {
 		n.IsClose = false
 		n.TCPConn.Close()
-		n.ringByte.Close()
 		close(n.WriteChan)
 		log.Logger.Info("close network")
 	}
