@@ -40,7 +40,7 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 			b.beUsable -= useLen
 			b.writePos += useLen
 		} else {
-			oneWriteSize := b.len - b.writePos
+			oneWriteSize := b.len-1 - b.writePos
 			//two := useLen - oneWriteSize
 			copy(b.ringByte[b.writePos:], putByte[:oneWriteSize])
 			copy(b.ringByte[0:], putByte[oneWriteSize:])

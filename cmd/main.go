@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/net/tcp"
-	"github.com/Byfengfeng/gnet_tool/utils"
 	"sort"
-	"time"
 )
 
 type S struct {
@@ -16,35 +14,35 @@ func main() {
 	listen := tcp.NewNetListen("192.168.31.134:9000")
 	listen.Start()
 	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
-	bytes := utils.NewBytes( 1024, func(bytes []byte) {
+	//bytes := utils.NewBytes( 1024, func(bytes []byte) {
 		//decode, data := utils.Decode(bytes)
 		//fmt.Println("decode:",decode,"data:",data)
-		fmt.Println(string(bytes))
-	})
+		//fmt.Println(string(bytes))
+	//})
 	//go bytes.ReadBytes()
-	go func() {
-		for i := 0; i < 1000; i++ {
-			if i % 2 == 0 {
-				str := "00000"
-				lens := uint16(len(str))
-				bys := make([]byte,0)
-				bys = append(bys,byte(lens >> 8),byte(lens))
-				bys = append(bys,[]byte(str)...)
-				bytes.WriteBytes(uint16(len(bys)),bys)
-			}else{
-				str := "1111111111"
-				lens := uint16(len(str))
-				bys := make([]byte,0)
-				bys = append(bys,byte(lens >> 8),byte(lens))
-				bys = append(bys,[]byte(str)...)
-				bytes.WriteBytes(uint16(len(bys)),bys)
-			}
-		}
-		fmt.Println(bytes)
-	}()
+	//go func() {
+	//	for i := 0; i < 1000; i++ {
+	//		if i % 2 == 0 {
+	//			str := "00000"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}else{
+	//			str := "1111111111"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}
+	//	}
+	//	fmt.Println(bytes)
+	//}()
 
 
-	time.Sleep(1 * time.Minute)
+	//time.Sleep(1 * time.Minute)
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
 	//listData := QuickSort(data)
 	//fmt.Println(listData)
@@ -95,7 +93,7 @@ func main() {
 	//fmt.Println(*i)
 	//fmt.Println(*j)
 	//tcp.NewNetListen(":8999",network.NewNetWork())
-	//<-make(chan struct{})
+	<-make(chan struct{})
 
 	//TestPool()
 }

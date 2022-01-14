@@ -35,22 +35,40 @@ func NewNetWork(c *net.TCPConn) {
 	t.Start()
 }
 
-func (n *NetWork) readBuff()  {
+func (n *NetWork) read()  {
 	for {
-		newBytes := make([]byte, 1024)
-		readLen, err := n.TCPConn.Read(newBytes)
+		head := make([]byte, 2)
+		readLen, err := n.TCPConn.Read(head)
 		if err != nil {
 			log.Logger.Info(err.Error())
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
-			log.Logger.Info("readBuff off")
+			log.Logger.Info("read off")
 			return
 		}
 		if readLen == 0 {
-			log.Logger.Info("readBuff off")
+			log.Logger.Info("read off")
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 			return
 		} else {
-			n.ringByte.WriteBytes(uint16(readLen),newBytes[0:readLen-1])
+			if readLen > 0 {
+				headLen := utils.Length(head)
+				body := make([]byte,headLen)
+				bodyLen, err := n.TCPConn.Read(body)
+				if err != nil {
+					log.Logger.Info(err.Error())
+					code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
+					log.Logger.Info("read off")
+					return
+				}
+				if uint32(bodyLen) == headLen {
+					code, data := utils.Decode(body)
+					code_tool.Request(n.Ctx.Addr, n, code, data)
+				}
+			}else{
+				log.Logger.Info("read off")
+				code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
+			}
+
 		}
 	}
 }
@@ -76,7 +94,7 @@ func (n *NetWork) write() {
 }
 
 func (n *NetWork) Start() {
-	go n.readBuff()
+	go n.read()
 	go n.write()
 }
 
