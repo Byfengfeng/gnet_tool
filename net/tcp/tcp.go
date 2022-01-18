@@ -37,7 +37,7 @@ func (n * netListen) Start() error {
 			if err != nil {
 				log.Logger.Error("client channel exit",zap.Any("err",err))
 			}
-			n.channelHandel(tcpConn)
+			go n.channelHandel(tcpConn)
 		}
 	}()
 	log.Logger.Info("tcp listen start success")

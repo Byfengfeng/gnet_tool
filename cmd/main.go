@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Byfengfeng/gnet_tool/utils"
+	"github.com/valyala/bytebufferpool"
 	"sort"
 	"time"
 )
@@ -12,6 +13,15 @@ type S struct {
 }
 
 func main() {
+	byteBuffer := bytebufferpool.Get()
+	byteBuffer.Write()
+	str := "123"
+	byteBuffer.Write([]byte(str))
+	byteBuffer.Write([]byte("str"))
+	fmt.Println("byteBuffer:",byteBuffer.Bytes())
+	bytebufferpool.Put(byteBuffer)
+	byteBuffer1 := bytebufferpool.Get()
+	fmt.Println("byteBuffer1:",byteBuffer1.Bytes())
 	//listen := tcp.NewNetListen("192.168.31.134:9000")
 	//listen.Start()
 	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
@@ -40,7 +50,7 @@ func main() {
 				bytes.WriteBytes(uint16(len(bys)),bys)
 			}
 		}
-		//fmt.Println(bytes)
+		bytes.Len()
 		//for i := 0; i < 1000; i++ {
 		//	bytes.ReadBytes()
 		//}

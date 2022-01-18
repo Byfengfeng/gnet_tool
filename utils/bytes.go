@@ -28,6 +28,9 @@ func NewBytes(initByteCap uint16, fn func(bytes []byte)) *Bytes {
 	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap,0, 0, make([]byte, initByteCap),
 		sync.RWMutex{}, 0, false, fn, sync.Mutex{}}
 }
+func (b *Bytes) Len()  {
+	fmt.Println(b.len)
+}
 
 func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	if b.checkClose {
@@ -58,7 +61,7 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 		}
 	} else {
 		//add byte size
-		b.addByt()
+		b.addByt(useLen)
 		b.WriteBytes(useLen, putByte)
 		return
 	}
@@ -66,11 +69,18 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 	go b.ReadBytes()
 }
 
-func (b *Bytes) addByt() {
+func (b *Bytes) addByt(needLen uint16) {
 	b.byteOperate.Lock()
+	if b.beUsable >= needLen {
+		return
+	}
 	b.len += b.initByteCap
 	b.beUsable += b.initByteCap
-	b.ringByte = append(append(b.ringByte[:b.writePos], make([]byte, b.initByteCap)...), b.ringByte[b.writePos:]...)
+	if b.readPos > b.writePos {
+		b.readPos += b.initByteCap
+	}
+	bytes := append(b.ringByte[:b.writePos], make([]byte, b.initByteCap)...)
+	b.ringByte = append(bytes, b.ringByte[b.writePos:]...)
 	fmt.Println("扩容长度", b.len)
 	b.byteOperate.Unlock()
 }
@@ -78,15 +88,12 @@ func (b *Bytes) addByt() {
 func (b *Bytes) dropByt() {
 	b.byteOperate.Lock()
 	wL := b.len - b.writePos
-	if wL > b.initByteCap {
-		//TODO
-		r1 := b.beUsable - b.readPos
-		b.readPos = r1
-		b.ringByte = append(b.ringByte[0:b.writePos], b.ringByte[b.writePos+b.initByteCap:]...)
-		b.ringByte = append(b.ringByte[b.readPos:])
+	if b.beUsable > b.initByteCap && wL > b.initByteCap && b.readPos <= b.writePos{
+		b.ringByte = append(b.ringByte[:b.writePos],b.ringByte[b.writePos+b.initByteCap:]...)
 		b.len -= b.initByteCap
-		fmt.Println("縮容长度", b.len)
+		b.beUsable -= b.initByteCap
 		b.dropCount = 0
+		fmt.Println("縮容长度", b.len)
 	}
 
 	b.byteOperate.Unlock()
@@ -173,7 +180,7 @@ func (b *Bytes) writeN(writeLen uint16, bytes []byte) {
 		}
 		b.byteOperate.RUnlock()
 	} else if b.beUsable < writeLen {
-		b.addByt()
+		b.addByt(writeLen)
 		b.writeN(writeLen, bytes)
 	} else {
 		b.byteOperate.RLock()

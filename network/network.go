@@ -31,8 +31,8 @@ func NewNetWork(c *net.TCPConn) {
 }
 
 func (n *NetWork) read()  {
+	head := make([]byte, 2)
 	for {
-		head := make([]byte, 2)
 		readLen, err := n.TCPConn.Read(head)
 		if err != nil {
 			log.Logger.Info(err.Error())
