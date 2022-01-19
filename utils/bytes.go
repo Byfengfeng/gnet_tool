@@ -25,7 +25,7 @@ type Bytes struct {
 }
 
 func NewBytes(initByteCap uint16, fn func(bytes []byte)) *Bytes {
-	return &Bytes{initByteCap, 0, 0, initByteCap, initByteCap,0, 0, make([]byte, initByteCap),
+	return &Bytes{initByteCap, 0, 0, 1024, initByteCap,0, 0, make([]byte, initByteCap),
 		sync.RWMutex{}, 0, false, fn, sync.Mutex{}}
 }
 func (b *Bytes) Len()  {

@@ -29,7 +29,7 @@ func NewNetWork(c *net.TCPConn) {
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
-	bytes := utils.NewBytes(1024, func(bytes []byte) {
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
 		code, data := utils.Decode(bytes)
 		go code_tool.Request(t.Ctx.Addr, t, code, data)})
 	t.ringByte = bytes
@@ -38,8 +38,8 @@ func NewNetWork(c *net.TCPConn) {
 }
 
 func (n *NetWork) readBuff()  {
+	newBytes := make([]byte, 1024)
 	for {
-		newBytes := make([]byte, 1024)
 		readLen, err := n.TCPConn.Read(newBytes)
 		if err != nil {
 			log.Logger.Info(err.Error())
