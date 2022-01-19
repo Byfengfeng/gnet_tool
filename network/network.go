@@ -12,58 +12,64 @@ import (
 
 type NetWork struct {
 	*net.TCPConn
+	ReadChan  chan []byte
 	WriteChan chan []byte
 	IsClose   bool
 	CloseLock sync.RWMutex
 	Ctx       *code_tool.IRequestCtx
+	ringByte  *utils.Bytes
 }
 
 func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
 	t := &NetWork{TCPConn:c,
+		ReadChan: make(chan []byte),
 		WriteChan: make(chan []byte),
 		IsClose: true,
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
+	bytes := utils.NewBytes(1024, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)})
+	t.ringByte = bytes
 	code_tool.NewChannel(t)
 	t.Start()
 }
 
-func (n *NetWork) read()  {
-	head := make([]byte, 2)
+func (n *NetWork) readBuff()  {
 	for {
-		readLen, err := n.TCPConn.Read(head)
+		newBytes := make([]byte, 1024)
+		readLen, err := n.TCPConn.Read(newBytes)
 		if err != nil {
 			log.Logger.Info(err.Error())
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
-			log.Logger.Info("read off")
+			log.Logger.Info("readBuff off")
 			return
 		}
 		if readLen == 0 {
-			log.Logger.Info("read off")
+			log.Logger.Info("readBuff off")
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 			return
 		} else {
-			if readLen > 0 {
-				headLen := utils.Length(head)
-				body := make([]byte,headLen)
-				bodyLen, err := n.TCPConn.Read(body)
-				if err != nil {
-					log.Logger.Info(err.Error())
-					code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
-					log.Logger.Info("read off")
-					return
-				}
-				if uint32(bodyLen) == headLen {
-					code, data := utils.Decode(body)
-					code_tool.Request(n.Ctx.Addr, n, code, data)
-				}
-			}else{
-				log.Logger.Info("read off")
-				code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
-			}
-
+			n.ringByte.WriteBytes(uint16(readLen),newBytes[0:readLen])
+		}
+	}
+}
+func (n *NetWork) read() {
+	for {
+		if !n.IsClose {
+			log.Logger.Info("read off")
+			return
+		}
+		reqBytes := <- n.ReadChan
+		if len(reqBytes) == 0 {
+			log.Logger.Info("read off")
+			return
+		} else {
+			//读取数据
+			code, data := utils.Decode(reqBytes)
+			code_tool.Request(n.Ctx.Addr, n, code, data)
 		}
 	}
 }
@@ -89,12 +95,17 @@ func (n *NetWork) write() {
 }
 
 func (n *NetWork) Start() {
-	go n.read()
+	go n.readBuff()
+	//go n.read()
 	go n.write()
 }
 
 func (n *NetWork) GetCtx() interface{} {
 	return n.Ctx
+}
+
+func (n *NetWork) WriteReadChan(data []byte) {
+	n.ReadChan <- data
 }
 
 func (n *NetWork) WriteWriteChan(data []byte) {
@@ -107,6 +118,8 @@ func (n *NetWork) SetIsClose() {
 	if n.IsClose {
 		n.IsClose = false
 		n.TCPConn.Close()
+		n.ringByte.Close()
+		close(n.ReadChan)
 		close(n.WriteChan)
 		log.Logger.Info("close network")
 	}
