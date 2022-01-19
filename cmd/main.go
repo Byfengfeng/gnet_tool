@@ -14,7 +14,7 @@ type S struct {
 
 func main() {
 	byteBuffer := bytebufferpool.Get()
-	byteBuffer.Write()
+	//byteBuffer.Write()
 	str := "123"
 	byteBuffer.Write([]byte(str))
 	byteBuffer.Write([]byte("str"))

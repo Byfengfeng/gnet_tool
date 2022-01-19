@@ -52,13 +52,6 @@ func (b *Bytes) WriteBytes(useLen uint16, putByte []byte) {
 			b.writePos = useLen - oneWriteSize
 		}
 		b.byteOperate.RUnlock()
-		if b.len > b.initByteCap && b.beUsable > b.initByteCap {
-			b.dropCount++
-			if b.dropCount >= 10 {
-				// drop byte size
-				b.dropByt()
-			}
-		}
 	} else {
 		//add byte size
 		b.addByt(useLen)
