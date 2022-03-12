@@ -6,12 +6,13 @@ import (
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"go.uber.org/zap"
+	"golang.org/x/net/websocket"
 	"net"
 	"sync"
 )
 
 type NetWork struct {
-	*net.TCPConn
+	net.Conn
 	ReadChan  chan []byte
 	WriteChan chan []byte
 	IsClose   bool
@@ -20,9 +21,26 @@ type NetWork struct {
 	ringByte  *utils.Bytes
 }
 
-func NewNetWork(c *net.TCPConn) {
+func NewNetWorkTcp(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
-	t := &NetWork{TCPConn:c,
+	t := &NetWork{Conn:c,
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
+	}
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)})
+	t.ringByte = bytes
+	code_tool.NewChannel(t)
+	t.Start()
+}
+
+func NewNetWorkWs(c *websocket.Conn) {
+	address := c.RemoteAddr().String()
+	t := &NetWork{Conn:c,
 		ReadChan: make(chan []byte),
 		WriteChan: make(chan []byte),
 		IsClose: true,
@@ -40,7 +58,7 @@ func NewNetWork(c *net.TCPConn) {
 func (n *NetWork) readBuff()  {
 	newBytes := make([]byte, 1024)
 	for {
-		readLen, err := n.TCPConn.Read(newBytes)
+		readLen, err := n.Conn.Read(newBytes)
 		if err != nil {
 			log.Logger.Info(err.Error())
 			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
@@ -117,7 +135,7 @@ func (n *NetWork) SetIsClose() {
 	defer n.CloseLock.Unlock()
 	if n.IsClose {
 		n.IsClose = false
-		n.TCPConn.Close()
+		n.Conn.Close()
 		n.ringByte.Close()
 		close(n.ReadChan)
 		close(n.WriteChan)

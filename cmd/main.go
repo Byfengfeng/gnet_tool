@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/Byfengfeng/gnet_tool/utils"
-	"github.com/valyala/bytebufferpool"
+	"github.com/Byfengfeng/gnet_tool/log"
+	"github.com/Byfengfeng/gnet_tool/net"
+	"github.com/Byfengfeng/gnet_tool/network"
 	"sort"
-	"time"
 )
 
 type S struct {
@@ -13,52 +13,53 @@ type S struct {
 }
 
 func main() {
-	byteBuffer := bytebufferpool.Get()
-	//byteBuffer.Write()
-	str := "123"
-	byteBuffer.Write([]byte(str))
-	byteBuffer.Write([]byte("str"))
-	fmt.Println("byteBuffer:",byteBuffer.Bytes())
-	bytebufferpool.Put(byteBuffer)
-	byteBuffer1 := bytebufferpool.Get()
-	fmt.Println("byteBuffer1:",byteBuffer1.Bytes())
+	TestWebsocket()
+	//byteBuffer := bytebufferpool.Get()
+	////byteBuffer.Write()
+	//str := "123"
+	//byteBuffer.Write([]byte(str))
+	//byteBuffer.Write([]byte("str"))
+	//fmt.Println("byteBuffer:",byteBuffer.Bytes())
+	//bytebufferpool.Put(byteBuffer)
+	//byteBuffer1 := bytebufferpool.Get()
+	//fmt.Println("byteBuffer1:",byteBuffer1.Bytes())
 	//listen := tcp.NewNetListen("192.168.31.134:9000")
 	//listen.Start()
 	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
-	bytes := utils.NewBytes( 1024, func(bytes []byte) {
-		//decode, data := utils.Decode(bytes)
-		//fmt.Println("decode:",decode,"data:",data)
-		fmt.Println(string(bytes))
-	})
-	//go bytes.ReadBytes()
-	go func() {
-		for i := 0; i < 1000; i++ {
-			time.Sleep(1)
-			if i % 2 == 0 {
-				str := "00000"
-				lens := uint16(len(str))
-				bys := make([]byte,0)
-				bys = append(bys,byte(lens >> 8),byte(lens))
-				bys = append(bys,[]byte(str)...)
-				bytes.WriteBytes(uint16(len(bys)),bys)
-			}else{
-				str := "1111111111"
-				lens := uint16(len(str))
-				bys := make([]byte,0)
-				bys = append(bys,byte(lens >> 8),byte(lens))
-				bys = append(bys,[]byte(str)...)
-				bytes.WriteBytes(uint16(len(bys)),bys)
-			}
-		}
-		bytes.Len()
-		//for i := 0; i < 1000; i++ {
-		//	bytes.ReadBytes()
-		//}
-
-	}()
-
-
-	time.Sleep(1 * time.Minute)
+	//bytes := utils.NewBytes( 1024, func(bytes []byte) {
+	//	//decode, data := utils.Decode(bytes)
+	//	//fmt.Println("decode:",decode,"data:",data)
+	//	fmt.Println(string(bytes))
+	//})
+	////go bytes.ReadBytes()
+	//go func() {
+	//	for i := 0; i < 1000; i++ {
+	//		time.Sleep(1)
+	//		if i % 2 == 0 {
+	//			str := "00000"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}else{
+	//			str := "1111111111"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}
+	//	}
+	//	bytes.Len()
+	//	//for i := 0; i < 1000; i++ {
+	//	//	bytes.ReadBytes()
+	//	//}
+	//
+	//}()
+	//
+	//
+	//time.Sleep(1 * time.Minute)
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
 	//listData := QuickSort(data)
 	//fmt.Println(listData)
@@ -109,9 +110,19 @@ func main() {
 	//fmt.Println(*i)
 	//fmt.Println(*j)
 	//tcp.NewNetListen(":8999",network.NewNetWork())
-	<-make(chan struct{})
+	//<-make(chan struct{})
 
 	//TestPool()
+}
+
+func TestWebsocket()  {
+	wsListen := net.NewWebSocket(":7777", network.NewNetWorkWs)
+	err := wsListen.Start()
+	if err != nil {
+		log.Logger.Error(err.Error())
+		return
+	}
+	log.Logger.Info("web socket start success")
 }
 
 func change(arr []int)  {

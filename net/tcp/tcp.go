@@ -7,17 +7,17 @@ import (
 	"net"
 )
 
-type netListen struct {
+type tcpListen struct {
 	address string
 	*net.TCPListener
 	channelHandel func(conn *net.TCPConn)
 }
 
-func NewNetListen(addr string) *netListen {
-	return &netListen{address: addr,channelHandel: network.NewNetWork}
+func NewTcpListen(addr string) *tcpListen {
+	return &tcpListen{address: addr,channelHandel: network.NewNetWorkTcp}
 }
 
-func (n * netListen) Start() error {
+func (n * tcpListen) Start() error {
 	addr, err := net.ResolveTCPAddr("tcp", n.address)
 	if err != nil {
 		return err
