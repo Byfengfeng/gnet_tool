@@ -1,4 +1,4 @@
-package tcp
+package net
 
 import (
 	"github.com/Byfengfeng/gnet_tool/log"
@@ -7,22 +7,22 @@ import (
 	"net"
 )
 
-type tcpListen struct {
+type udpListen struct {
 	address string
-	*net.TCPListener
+	*net.UDPConn
 	channelHandel func(conn *net.TCPConn)
 }
 
-func NewTcpListen(addr string) *tcpListen {
-	return &tcpListen{address: addr,channelHandel: network.NewNetWorkTcp}
+func NewUcpListen(addr string) *udpListen {
+	return &udpListen{address: addr,channelHandel: network.NewNetWorkTcp}
 }
 
-func (n * tcpListen) Start() error {
-	addr, err := net.ResolveTCPAddr("tcp", n.address)
+func (n *udpListen) Start() error {
+	addr, err := net.ResolveUDPAddr("udp", n.address)
 	if err != nil {
 		return err
 	}
-	n.TCPListener, err = net.ListenTCP("tcp", addr)
+	n.UDPConn, err = net.ListenUDP("udp", addr)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (n * tcpListen) Start() error {
 			}
 		}()
 		for {
-			tcpConn, err := n.TCPListener.AcceptTCP()
+			tcpConn, err := n.UDPConn.ReadFromUDP()
 			if err != nil {
 				log.Logger.Error("client channel exit",zap.Any("err",err))
 			}
