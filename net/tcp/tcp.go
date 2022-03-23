@@ -12,7 +12,7 @@ type tcpListen struct {
 	*net.TCPListener
 	channelHandel func(conn *net.TCPConn)
 }
-
+ 
 func NewTcpListen(addr string) *tcpListen {
 	return &tcpListen{address: addr,channelHandel: network.NewNetWorkTcp}
 }
