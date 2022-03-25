@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"github.com/Byfengfeng/gnet_tool/code_tool"
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
@@ -12,6 +13,7 @@ import (
 )
 
 type NetWork struct {
+	inter.INetwork
 	net.Conn
 	ReadChan  chan []byte
 	WriteChan chan []byte
@@ -21,7 +23,7 @@ type NetWork struct {
 	ringByte  *utils.Bytes
 }
 
-func NewNetWorkTcp(c *net.TCPConn) {
+func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
 	t := &NetWork{Conn:c,
 		ReadChan: make(chan []byte),
@@ -33,6 +35,24 @@ func NewNetWorkTcp(c *net.TCPConn) {
 	bytes := utils.NewBytes(2048, func(bytes []byte) {
 		code, data := utils.Decode(bytes)
 		go code_tool.Request(t.Ctx.Addr, t, code, data)})
+	t.ringByte = bytes
+	code_tool.NewChannel(t)
+	t.Start()
+}
+
+func NewNetWorkUdp(c *net.TCPConn) {
+	address := c.RemoteAddr().String()
+	t := &NetWork{
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
+	}
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)
+	})
 	t.ringByte = bytes
 	code_tool.NewChannel(t)
 	t.Start()
@@ -86,6 +106,7 @@ func (n *NetWork) read() {
 			return
 		} else {
 			//读取数据
+			fmt.Println(string(reqBytes))
 			code, data := utils.Decode(reqBytes)
 			code_tool.Request(n.Ctx.Addr, n, code, data)
 		}

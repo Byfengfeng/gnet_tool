@@ -5,11 +5,67 @@ import (
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/net"
 	"github.com/Byfengfeng/gnet_tool/network"
+	"golang.org/x/net/websocket"
+	net1 "net"
 	"sort"
+	"time"
 )
 
 type S struct {
 	M *int
+}
+
+func add(ws net1.Conn) {
+	msg := make([]byte, 1024)
+	go func() {
+		time.Sleep(5*time.Second)
+		fmt.Println("开始发送")
+		ws.Write([]byte("123456789"))
+	}()
+	for  {
+		n, err := ws.Read(msg)
+		if err != nil {
+			log.Logger.Error(err.Error())
+			ws.Close()
+			return
+		}
+		fmt.Printf("Receive: %s\n", msg[:n])
+
+		//sendMsg := "订单添加：" + string(msg[:n])
+		_, err = ws.Write(msg[:n])
+		if err != nil {
+			log.Logger.Error(err.Error())
+			ws.Close()
+			return
+		}
+		//fmt.Printf("Send: %s\n", sendMsg)
+	}
+
+}
+
+func del(ws *websocket.Conn) {
+	var msg string
+	err := websocket.Message.Receive(ws, &msg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("Receive: %s\n", msg)
+
+	sendMsg := "订单删除：" + msg
+	err = websocket.Message.Send(ws, sendMsg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("Send: %s\n", sendMsg)
+}
+
+func ping(ws *websocket.Conn) {
+	msg := make([]byte, 512)
+	n, err := ws.Read(msg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("心跳: %s\n", msg[:n])
 }
 
 func main() {
@@ -116,7 +172,18 @@ func main() {
 }
 
 func TestWebsocket()  {
-	wsListen := net.NewWebSocket(":7777", network.NewNetWorkWs)
+	//http.Handle("/add", websocket.Handler(add))
+	//http.Handle("/del", websocket.Handler(del))
+	//http.Handle("/ping", websocket.Handler(ping))
+	//fmt.Println("开始监听7777端口...")
+	//err := http.ListenAndServe(":7777", nil)
+	//if err != nil {
+	//	log.Logger.Error(err.Error())
+	//}
+
+	wsListen := net.NewWebSocket(":7777", func(conn *websocket.Conn) {
+		network.NewNetWorkWs(conn)
+	})
 	err := wsListen.Start()
 	if err != nil {
 		log.Logger.Error(err.Error())

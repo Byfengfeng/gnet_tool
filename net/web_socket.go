@@ -18,5 +18,6 @@ func (w *webSocketListen) Start() error {
 	handler := websocket.Handler(func(conn *websocket.Conn) {
 		w.channelHandel(conn)
 	})
-	return http.ListenAndServe(w.address, handler)
+	http.Handle("/add",handler)
+	return http.ListenAndServe(w.address, nil)
 }
