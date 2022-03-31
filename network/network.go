@@ -17,6 +17,7 @@ type NetWork struct {
 	net.Conn
 	ReadChan  chan []byte
 	WriteChan chan []byte
+	CloseChan chan bool
 	IsClose   bool
 	CloseLock sync.RWMutex
 	Ctx       *code_tool.IRequestCtx
@@ -28,6 +29,7 @@ func NewNetWork(c *net.TCPConn) {
 	t := &NetWork{Conn:c,
 		ReadChan: make(chan []byte),
 		WriteChan: make(chan []byte),
+		CloseChan: make(chan bool),
 		IsClose: true,
 		CloseLock: sync.RWMutex{},
 		Ctx: code_tool.NewIRequestCtx(0, address),
@@ -73,6 +75,11 @@ func NewNetWorkWs(c *websocket.Conn) {
 	t.ringByte = bytes
 	code_tool.NewChannel(t)
 	t.Start()
+	select {
+	case <- t.CloseChan:
+		close(t.CloseChan)
+		return
+	}
 }
 
 func (n *NetWork) readBuff()  {
@@ -160,6 +167,7 @@ func (n *NetWork) SetIsClose() {
 		n.ringByte.Close()
 		close(n.ReadChan)
 		close(n.WriteChan)
+		n.CloseChan <- true
 		log.Logger.Info("close network")
 	}
 }
