@@ -2,21 +2,120 @@ package main
 
 import (
 	"fmt"
+	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/net"
+	"github.com/Byfengfeng/gnet_tool/network"
+	"golang.org/x/net/websocket"
+	net1 "net"
 	"sort"
+	"time"
 )
 
 type S struct {
 	M *int
 }
 
-func main() {
-	//go freeOs()
-	tcpServer := net.NewTcpServer("tcp6","", 9000, true)
-	err := tcpServer.Start()
-	if err != nil {
-		panic(err)
+func add(ws net1.Conn) {
+	msg := make([]byte, 1024)
+	go func() {
+		time.Sleep(5*time.Second)
+		fmt.Println("开始发送")
+		ws.Write([]byte("123456789"))
+	}()
+	for  {
+		n, err := ws.Read(msg)
+		if err != nil {
+			log.Logger.Error(err.Error())
+			ws.Close()
+			return
+		}
+		fmt.Printf("Receive: %s\n", msg[:n])
+
+		//sendMsg := "订单添加：" + string(msg[:n])
+		_, err = ws.Write(msg[:n])
+		if err != nil {
+			log.Logger.Error(err.Error())
+			ws.Close()
+			return
+		}
+		//fmt.Printf("Send: %s\n", sendMsg)
 	}
+
+}
+
+func del(ws *websocket.Conn) {
+	var msg string
+	err := websocket.Message.Receive(ws, &msg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("Receive: %s\n", msg)
+
+	sendMsg := "订单删除：" + msg
+	err = websocket.Message.Send(ws, sendMsg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("Send: %s\n", sendMsg)
+}
+
+func ping(ws *websocket.Conn) {
+	msg := make([]byte, 512)
+	n, err := ws.Read(msg)
+	if err != nil {
+		log.Logger.Error(err.Error())
+	}
+	fmt.Printf("心跳: %s\n", msg[:n])
+}
+
+func main() {
+	TestWebsocket()
+	//byteBuffer := bytebufferpool.Get()
+	////byteBuffer.Write()
+	//str := "123"
+	//byteBuffer.Write([]byte(str))
+	//byteBuffer.Write([]byte("str"))
+	//fmt.Println("byteBuffer:",byteBuffer.Bytes())
+	//bytebufferpool.Put(byteBuffer)
+	//byteBuffer1 := bytebufferpool.Get()
+	//fmt.Println("byteBuffer1:",byteBuffer1.Bytes())
+	//listen := tcp.NewNetListen("192.168.31.134:9000")
+	//listen.Start()
+	//fmt.Println(splitSort([]int{1,3,5,9,11,65,78,99},11))
+	//bytes := utils.NewBytes( 1024, func(bytes []byte) {
+	//	//decode, data := utils.Decode(bytes)
+	//	//fmt.Println("decode:",decode,"data:",data)
+	//	fmt.Println(string(bytes))
+	//})
+	////go bytes.ReadBytes()
+	//go func() {
+	//	for i := 0; i < 1000; i++ {
+	//		time.Sleep(1)
+	//		if i % 2 == 0 {
+	//			str := "00000"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}else{
+	//			str := "1111111111"
+	//			lens := uint16(len(str))
+	//			bys := make([]byte,0)
+	//			bys = append(bys,byte(lens >> 8),byte(lens))
+	//			bys = append(bys,[]byte(str)...)
+	//			bytes.WriteBytes(uint16(len(bys)),bys)
+	//		}
+	//	}
+	//	bytes.Len()
+	//	//for i := 0; i < 1000; i++ {
+	//	//	bytes.ReadBytes()
+	//	//}
+	//
+	//}()
+	//
+	//
+	//time.Sleep(1 * time.Minute)
 	//data := []int{1,  2, 4, 12, 21, 8, 12, 31, 24, 12, 14, 23}
 	//listData := QuickSort(data)
 	//fmt.Println(listData)
@@ -72,6 +171,27 @@ func main() {
 	//TestPool()
 }
 
+func TestWebsocket()  {
+	//http.Handle("/add", websocket.Handler(add))
+	//http.Handle("/del", websocket.Handler(del))
+	//http.Handle("/ping", websocket.Handler(ping))
+	//fmt.Println("开始监听7777端口...")
+	//err := http.ListenAndServe(":7777", nil)
+	//if err != nil {
+	//	log.Logger.Error(err.Error())
+	//}
+
+	wsListen := net.NewWebSocket(":7777", func(conn *websocket.Conn) {
+		network.NewNetWorkWs(conn)
+	})
+	err := wsListen.Start()
+	if err != nil {
+		log.Logger.Error(err.Error())
+		return
+	}
+	log.Logger.Info("web socket start success")
+}
+
 func change(arr []int)  {
 	arr = append(arr,5)
 	sort.Ints(arr)
@@ -111,19 +231,18 @@ func forDel()  {
 }
 
 func splitSort(array []int,target int) int {
-	startPos,endPos := 0,len(array)-1
-	for startPos <= endPos {
-		index := startPos + (endPos - startPos) / 2
+	start,end := 0,len(array)-1
+	for start <= end {
+		index := start + (end - start) / 2
 		if array[index] == target {
 			return index
 		}
-		if array[index] < target {
-			startPos = index + 1
-		}else if array[index] > target {
-			endPos = index - 1
+		if array[index] > target {
+			end = index - 1
+		}else{
+			start = index + 1
 		}
 	}
-
 	return -1
 }
 func identity(z *S) *S {

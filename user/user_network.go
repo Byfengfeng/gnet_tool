@@ -10,19 +10,19 @@ import (
 type userMapperService struct {
 	addressMapperINetwork map[string]inter.INetwork
 	cidMapperAddress map[int64]string
-	delLock sync.Mutex
+	delLock sync.RWMutex
 }
 
 func NewUserMapperService() inter.IUserMapper {
 	return &userMapperService{
 		make(map[string]inter.INetwork,0),
 		make(map[int64]string,0),
-		sync.Mutex{}}
+		sync.RWMutex{}}
 }
 
 func (u *userMapperService) Response(address string,data []byte)  {
 	iNetwork := u.GetUserByAddr(address)
-	if iNetwork != nil {
+	if iNetwork != nil{
 		iNetwork.Action(func() {
 			iNetwork.WriteWriteChan(data)
 		})
@@ -75,8 +75,8 @@ func (u *userMapperService) AddUserByUid(addr string,uid int64)  {
 }
 
 func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
-	u.delLock.Lock()
-	defer u.delLock.Unlock()
+	u.delLock.RLock()
+	defer u.delLock.RUnlock()
 	n,ok := u.addressMapperINetwork[addr]
 	if ok {
 		return n
@@ -85,8 +85,8 @@ func (u *userMapperService) GetUserByAddr(addr string) inter.INetwork {
 }
 
 func (u *userMapperService) GetUserByCid(cid int64) string {
-	u.delLock.Lock()
-	defer u.delLock.Unlock()
+	u.delLock.RLock()
+	defer u.delLock.RUnlock()
 	a,ok := u.cidMapperAddress[cid]
 	if ok {
 		return a

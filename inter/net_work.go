@@ -2,9 +2,8 @@ package inter
 
 type INetwork interface {
 	Start()
-	Action(fn func())
+	Action(action func())
 	SetIsClose()
-	WriteReadChan(data []byte)
 	GetCtx() interface{}
 	WriteWriteChan(data []byte)
 	GetAddr() string

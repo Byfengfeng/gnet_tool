@@ -1,74 +1,148 @@
 package network
 
 import (
+	"fmt"
 	"github.com/Byfengfeng/gnet_tool/code_tool"
 	"github.com/Byfengfeng/gnet_tool/inter"
 	"github.com/Byfengfeng/gnet_tool/log"
 	"github.com/Byfengfeng/gnet_tool/utils"
 	"go.uber.org/zap"
+	"golang.org/x/net/websocket"
 	"net"
 	"sync"
-	"sync/atomic"
 )
 
 type NetWork struct {
-	*net.TCPConn
-	ReadChan chan []byte
+	inter.INetwork
+	net.Conn
+	ReadChan  chan []byte
 	WriteChan chan []byte
-	IsClose bool
+	CloseChan chan bool
+	IsClose   bool
 	CloseLock sync.RWMutex
-	Ctx *code_tool.IRequestCtx
+	Ctx       *code_tool.IRequestCtx
+	ringByte  *utils.Bytes
 }
-
-var(
-	count uint32
-)
 
 func NewNetWork(c *net.TCPConn) {
 	address := c.RemoteAddr().String()
-	t := &NetWork{c,
-		make(chan[]byte),
-		make(chan[]byte),
-		true,
-		sync.RWMutex{},
-		code_tool.NewIRequestCtx(0,address),
+	t := &NetWork{Conn:c,
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		CloseChan: make(chan bool),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
 	}
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)})
+	t.ringByte = bytes
 	code_tool.NewChannel(t)
 	t.Start()
 }
 
-func (n *NetWork) read()  {
-	for  {
+func NewNetWorkUdp(c *net.TCPConn) {
+	address := c.RemoteAddr().String()
+	t := &NetWork{
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
+	}
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)
+	})
+	t.ringByte = bytes
+	code_tool.NewChannel(t)
+	t.Start()
+}
+
+func NewNetWorkWs(c *websocket.Conn) {
+	address := c.RemoteAddr().String()
+	t := &NetWork{Conn:c,
+		ReadChan: make(chan []byte),
+		WriteChan: make(chan []byte),
+		IsClose: true,
+		CloseLock: sync.RWMutex{},
+		Ctx: code_tool.NewIRequestCtx(0, address),
+	}
+	bytes := utils.NewBytes(2048, func(bytes []byte) {
+		code, data := utils.Decode(bytes)
+		go code_tool.Request(t.Ctx.Addr, t, code, data)})
+	t.ringByte = bytes
+	code_tool.NewChannel(t)
+	t.Start()
+	select {
+	case <- t.CloseChan:
+		close(t.CloseChan)
+		return
+	}
+}
+
+func (n *NetWork) readBuff()  {
+	newBytes := make([]byte, 1024)
+	for {
+		readLen, err := n.Conn.Read(newBytes)
+		if err != nil {
+			log.Logger.Info(err.Error())
+			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
+			log.Logger.Info("readBuff off")
+			return
+		}
+		if readLen == 0 {
+			log.Logger.Info("readBuff off")
+			code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
+			return
+		} else {
+			n.ringByte.WriteBytes(uint16(readLen),newBytes[0:readLen])
+		}
+	}
+}
+func (n *NetWork) read() {
+	for {
+		if !n.IsClose {
+			log.Logger.Info("read off")
+			return
+		}
 		reqBytes := <- n.ReadChan
 		if len(reqBytes) == 0 {
 			log.Logger.Info("read off")
 			return
-		}else{
+		} else {
 			//读取数据
+			fmt.Println(string(reqBytes))
 			code, data := utils.Decode(reqBytes)
-			code_tool.Request(n.Ctx.Addr,n,code,data)
+			code_tool.Request(n.Ctx.Addr, n, code, data)
 		}
 	}
 }
 
-func (n *NetWork) write()  {
-	for  {
-		data := <- n.WriteChan
+func (n *NetWork) write() {
+	for {
+		if !n.IsClose {
+			log.Logger.Info("write off")
+			return
+		}
+		data := <-n.WriteChan
 		if len(data) > 0 {
-			_,err := n.Write(data)
+			_, err := n.Write(data)
 			if err != nil {
-				log.Logger.Error("发送消息异常",zap.Any("err",err))
+				log.Logger.Error("发送消息异常", zap.Any("err", err))
 				return
 			}
-		}else{
+		} else {
 			log.Logger.Info("write off")
 			return
 		}
 	}
 }
 
-func (n *NetWork) Start()  {
-	go n.read()
+func (n *NetWork) Start() {
+	go n.readBuff()
+	//go n.read()
 	go n.write()
 }
 
@@ -76,27 +150,30 @@ func (n *NetWork) GetCtx() interface{} {
 	return n.Ctx
 }
 
-func (n *NetWork) WriteReadChan(data []byte)  {
+func (n *NetWork) WriteReadChan(data []byte) {
 	n.ReadChan <- data
 }
 
-func (n *NetWork) WriteWriteChan(data []byte)  {
+func (n *NetWork) WriteWriteChan(data []byte) {
 	n.WriteChan <- data
 }
 
-func (n *NetWork) SetIsClose()  {
+func (n *NetWork) SetIsClose() {
 	n.CloseLock.Lock()
-	n.IsClose = false
-	n.Conn.Close()
-	close(n.ReadChan)
-	close(n.WriteChan)
-	n.CloseLock.Unlock()
-	log.Logger.Info("close network")
-	atomic.AddUint32(&count,1)
+	defer n.CloseLock.Unlock()
+	if n.IsClose {
+		n.IsClose = false
+		n.Conn.Close()
+		n.ringByte.Close()
+		close(n.ReadChan)
+		close(n.WriteChan)
+		n.CloseChan <- true
+		log.Logger.Info("close network")
+	}
 }
 
-func  (n *NetWork) CloseCid()  {
-	code_tool.OffLine(n.Ctx.Addr,n.Ctx.Cid)
+func (n *NetWork) CloseCid() {
+	code_tool.OffLine(n.Ctx.Addr, n.Ctx.Cid)
 }
 
 func GetNetWork(address string) inter.INetwork {
@@ -107,10 +184,10 @@ func (n *NetWork) GetNetWorkBy(address string) inter.INetwork {
 	return GetNetWork(address)
 }
 
-func (n *NetWork) Action(fn func()) {
+func (n *NetWork) Action(action func()) {
 	n.CloseLock.RLock()
 	if n.IsClose {
-		fn()
+		action()
 	}
 	n.CloseLock.RUnlock()
 }
@@ -120,19 +197,10 @@ func (n *NetWork) GetAddr() string {
 	return n.RemoteAddr().String()
 }
 
-func (n *NetWork) SetCid(cid int64)  {
+func (n *NetWork) SetCid(cid int64) {
 	n.Ctx.Cid = cid
 }
 
-func (n *NetWork) SetUid(uid int64)  {
+func (n *NetWork) SetUid(uid int64) {
 	n.Ctx.Uid = uid
 }
-
-func GetCloseCount() uint32 {
-	return count
-}
-
-func SetCount() {
-	count = 0
-}
-
