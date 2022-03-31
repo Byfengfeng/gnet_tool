@@ -192,6 +192,7 @@ func (n *NetWork) Action(action func()) {
 	n.CloseLock.RUnlock()
 }
 
+
 func (n *NetWork) GetAddr() string {
 	return n.RemoteAddr().String()
 }
